@@ -3,7 +3,6 @@ package com.redbeemedia.enigma.exoplayerintegration;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
-import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.view.View;
 
@@ -27,12 +26,12 @@ import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 import com.redbeemedia.enigma.core.IPlayerImplementation;
+import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 
 public class ExoPlayerTech implements IPlayerImplementation {
     private final DataSource.Factory manifestDataSourceFactory;
     private final DataSource.Factory mediaDataSourceFactory;
     private SimpleExoPlayer player;
-    private Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public ExoPlayerTech(Context context, String appName) {
         manifestDataSourceFactory =
@@ -52,7 +51,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     @Override
     public void startPlayback(String url) {
         final MediaSource mediaSource = buildMediaSource(Uri.parse(url));
-        mainHandler.post(new Runnable() {
+        AndroidThreadUtil.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 player.prepare(mediaSource, true, false);
