@@ -25,6 +25,7 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+import com.redbeemedia.enigma.core.player.IEnigmaPlayerEnvironment;
 import com.redbeemedia.enigma.core.player.IPlayerImplementation;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 
@@ -46,6 +47,10 @@ public class ExoPlayerTech implements IPlayerImplementation {
         TrackSelector trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory(new DefaultBandwidthMeter()));
 
         this.player = ExoPlayerFactory.newSimpleInstance(context, trackSelector);
+    }
+
+    @Override
+    public void install(IEnigmaPlayerEnvironment environment) {
     }
 
     @Override
