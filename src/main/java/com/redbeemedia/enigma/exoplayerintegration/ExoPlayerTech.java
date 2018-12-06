@@ -28,6 +28,7 @@ import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import com.redbeemedia.enigma.core.player.IDrmPlayerImplementation;
+import com.redbeemedia.enigma.core.player.IEnigmaPlayerEnvironment;
 import com.redbeemedia.enigma.core.player.IPlayerImplementation;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 
@@ -66,6 +67,10 @@ public class ExoPlayerTech implements IPlayerImplementation, IDrmPlayerImplement
         }
 
         this.player = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager);
+    }
+
+    @Override
+    public void install(IEnigmaPlayerEnvironment environment) {
     }
 
     @Override
