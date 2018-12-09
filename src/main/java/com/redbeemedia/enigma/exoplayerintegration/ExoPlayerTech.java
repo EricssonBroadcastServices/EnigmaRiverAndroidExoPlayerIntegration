@@ -11,7 +11,6 @@ import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
-import com.google.android.exoplayer2.drm.HttpMediaDrmCallback;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
@@ -24,71 +23,44 @@ import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
-import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
-import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
-import com.redbeemedia.enigma.core.player.IDrmPlayerImplementation;
 import com.redbeemedia.enigma.core.player.IEnigmaPlayerEnvironment;
 import com.redbeemedia.enigma.core.player.IPlayerImplementation;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 
-import java.lang.ref.WeakReference;
 import java.util.UUID;
 
-public class ExoPlayerTech implements IPlayerImplementation, IDrmPlayerImplementation {
+public class ExoPlayerTech implements IPlayerImplementation {
 
     private MediaSource mediaSource;
     private final DataSource.Factory mediaDataSourceFactory;
     private SimpleExoPlayer player;
     private FrameworkMediaDrm mediaDrm;
-    private HttpDataSource.Factory licenseDataSourceFactory;
-    private DefaultDrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
-    private TestMediaDrmCallback testMediaDrmCallback;
+    private DefaultDrmSessionManager<FrameworkMediaCrypto> drmSessionManager;
+    private MediaDrmCallbackImpl mediaDrmCallback;
     private TrackSelector trackSelector;
-    private WeakReference<View> viewWeakReference;
-    private Context context;
 
     public ExoPlayerTech(Context context, String appName) {
-        this.context = context;
-        //TODO why we are passing appName , we have context
-        mediaDataSourceFactory =
-            new DefaultDataSourceFactory(
-                context, Util.getUserAgent(context, appName));
+        mediaDataSourceFactory = new DefaultDataSourceFactory(context, Util.getUserAgent(context, appName));
         trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory());
-        licenseDataSourceFactory = new DefaultHttpDataSourceFactory(Util.getUserAgent(context, appName));
+        mediaDrmCallback = new MediaDrmCallbackImpl(context,appName);
         DefaultRenderersFactory rendersFactory =
             new DefaultRenderersFactory(context, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
         try {
-            drmSessionManager = buildDrmSessionManagerV18(Util.getDrmUuid("widevine"), "", new String[]{}, false);
-
+            drmSessionManager = buildDrmSessionManagerV18(Util.getDrmUuid("widevine"), false);
         } catch (UnsupportedDrmException e) {
-            //TODO: handle DRM exception
             throw new RuntimeException(e);
         }
-
         this.player = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager);
     }
 
     @Override
     public void install(IEnigmaPlayerEnvironment environment) {
+        mediaDrmCallback.setDrmProvider(environment.getDrmProvider());
     }
 
     @Override
     public void startPlayback(String url) {
-        mediaSource = buildMediaSource(Uri.parse(url));
-        AndroidThreadUtil.runOnUiThread(() -> {
-            player.prepare(mediaSource, true, false);
-            player.setPlayWhenReady(true);
-        });
-    }
-
-    @Override
-    public void startPlaybackWithDrm(String url, String licenceUrl, String[] keyRequestPropertiesArray) {
-
-        HttpMediaDrmCallback drmCallback =
-            new HttpMediaDrmCallback(licenceUrl, licenseDataSourceFactory);
-        testMediaDrmCallback.setMediaDrmCallback(drmCallback);
-
         mediaSource = buildMediaSource(Uri.parse(url));
         AndroidThreadUtil.runOnUiThread(() -> {
             player.prepare(mediaSource, true, false);
@@ -103,10 +75,6 @@ public class ExoPlayerTech implements IPlayerImplementation, IDrmPlayerImplement
             throw new IllegalArgumentException("Attaching view of type " + view.getClass().getName() + " is not yet supported.");
         }
     }
-
-//    public void setView(View view) {
-//        viewWeakReference = new WeakReference<>(view);
-//    }
 
     public void release() {
         if (player != null) {
@@ -139,20 +107,11 @@ public class ExoPlayerTech implements IPlayerImplementation, IDrmPlayerImplement
     }
 
     private DefaultDrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManagerV18(
-        UUID uuid, String licenseUrl, String[] keyRequestPropertiesArray, boolean multiSession)
+        UUID uuid, boolean multiSession)
         throws UnsupportedDrmException {
-        HttpMediaDrmCallback drmCallback =
-            new HttpMediaDrmCallback(licenseUrl, licenseDataSourceFactory);
-        testMediaDrmCallback = new TestMediaDrmCallback(drmCallback);
-        if (keyRequestPropertiesArray != null) {
-            for (int i = 0; i < keyRequestPropertiesArray.length - 1; i += 2) {
-                drmCallback.setKeyRequestProperty(keyRequestPropertiesArray[i],
-                    keyRequestPropertiesArray[i + 1]);
-            }
-        }
         releaseMediaDrm();
         mediaDrm = FrameworkMediaDrm.newInstance(uuid);
-        return new DefaultDrmSessionManager<>(uuid, mediaDrm, testMediaDrmCallback, null, multiSession);
+        return new DefaultDrmSessionManager<>(uuid, mediaDrm, mediaDrmCallback, null, multiSession);
     }
 
     private void releaseMediaDrm() {
