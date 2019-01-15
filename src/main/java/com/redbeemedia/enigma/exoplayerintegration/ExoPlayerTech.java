@@ -55,6 +55,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
         });
     }
 
+    @Override
+    public void release() {
+        this.player.release();
+    }
+
     public void attachView(View view) {
         if (view instanceof PlayerView) {
             ((PlayerView) view).setPlayer(player);
