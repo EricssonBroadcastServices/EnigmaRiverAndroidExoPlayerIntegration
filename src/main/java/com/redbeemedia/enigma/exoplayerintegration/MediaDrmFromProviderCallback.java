@@ -8,9 +8,10 @@ import com.google.android.exoplayer2.drm.MediaDrmCallback;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
-import com.redbeemedia.enigma.core.player.IDrmInfo;
-import com.redbeemedia.enigma.core.player.IDrmProvider;
+import com.redbeemedia.enigma.core.drm.IDrmInfo;
+import com.redbeemedia.enigma.core.drm.IDrmProvider;
 
+import java.util.Map;
 import java.util.UUID;
 
 /*package-protected*/ class MediaDrmFromProviderCallback implements MediaDrmCallback {
@@ -35,14 +36,9 @@ import java.util.UUID;
 
     private MediaDrmCallback createDelegateCallback(IDrmInfo drmInfo) {
         HttpMediaDrmCallback httpMediaDrmCallback = new HttpMediaDrmCallback(drmInfo.getLicenseUrl(), licenseDataSourceFactory);
-        if (drmInfo.getDrmKeyRequestPropertiesArray() != null) {
-            String[] keyRequestPropertiesArray = drmInfo.getDrmKeyRequestPropertiesArray();
-            if (keyRequestPropertiesArray != null) {
-                for (int i = 0; i < keyRequestPropertiesArray.length - 1; i += 2) {
-                    httpMediaDrmCallback.setKeyRequestProperty(keyRequestPropertiesArray[i],
-                            keyRequestPropertiesArray[i + 1]);
-                }
-            }
+
+        for(Map.Entry<String, String> entry : drmInfo.getDrmKeyRequestProperties()) {
+            httpMediaDrmCallback.setKeyRequestProperty(entry.getKey(), entry.getValue());
         }
         return httpMediaDrmCallback;
     }
