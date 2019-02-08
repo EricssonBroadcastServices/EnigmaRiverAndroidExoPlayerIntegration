@@ -26,11 +26,12 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 import com.redbeemedia.enigma.core.format.EnigmaMediaFormat;
-import com.redbeemedia.enigma.core.format.IMediaFormatSupportSpec;
 import com.redbeemedia.enigma.core.player.IEnigmaPlayerEnvironment;
 import com.redbeemedia.enigma.core.player.IPlayerImplementation;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class ExoPlayerTech implements IPlayerImplementation {
@@ -38,10 +39,15 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private final ReusableExoMediaDrm<FrameworkMediaCrypto> mediaDrm;
     private SimpleExoPlayer player;
     private MediaDrmFromProviderCallback mediaDrmCallback;
+    private MediaFormatSpecification supportedFormats = new MediaFormatSpecification();
 
     public ExoPlayerTech(Context context, String appName) {
         this.mediaDataSourceFactory = new DefaultDataSourceFactory(context, Util.getUserAgent(context, appName));
         this.mediaDrmCallback = new MediaDrmFromProviderCallback(context,appName);
+
+        for(EnigmaMediaFormat format : initSupportedFormats(new HashSet<>())) {
+            supportedFormats.add(format);
+        }
 
         TrackSelector trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory());
         DefaultRenderersFactory rendersFactory =
@@ -65,12 +71,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     @Override
     public void install(IEnigmaPlayerEnvironment environment) {
         mediaDrmCallback.setDrmProvider(environment.getDrmProvider());
-        environment.setMediaFormatSupportSpec(new IMediaFormatSupportSpec() {
-            @Override
-            public boolean supports(EnigmaMediaFormat enigmaMediaFormat) {
-                return enigmaMediaFormat == EnigmaMediaFormat.DASH_UNENCRYPTED || enigmaMediaFormat == EnigmaMediaFormat.DASH_CENC;
-            }
-        });
+        environment.setMediaFormatSupportSpec(supportedFormats);
     }
 
     @Override
@@ -87,6 +88,12 @@ public class ExoPlayerTech implements IPlayerImplementation {
     public void release() {
         this.player.release();
         this.mediaDrm.release();
+    }
+
+    protected Set<EnigmaMediaFormat> initSupportedFormats(Set<EnigmaMediaFormat> supportedFormats) {
+        supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.DASH, EnigmaMediaFormat.DrmTechnology.NONE));
+        supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.DASH, EnigmaMediaFormat.DrmTechnology.WIDEVINE));
+        return supportedFormats;
     }
 
     public void attachView(View view) {
