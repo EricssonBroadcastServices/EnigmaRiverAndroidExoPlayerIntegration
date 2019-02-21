@@ -16,7 +16,7 @@ import java.util.Map;
 
 import androidx.annotation.Nullable;
 
-public class ReusableExoMediaDrm<T extends ExoMediaCrypto> implements ExoMediaDrm<T> {
+/*package-protected*/ class ReusableExoMediaDrm<T extends ExoMediaCrypto> implements ExoMediaDrm<T> {
     private final ExoMediaDrmFactory<T> factory;
     private ExoMediaDrm<T> wrapped;
 
