@@ -5,10 +5,10 @@ import com.google.android.exoplayer2.Player;
 import com.redbeemedia.enigma.core.player.IPlayerImplementationListener;
 import com.redbeemedia.enigma.exoplayerintegration.error.ExoPlayerError;
 
-/*package-protected*/ class ListenerAdapter implements Player.EventListener {
+/*package-protected*/ class ExoPlayerListener implements Player.EventListener {
     private IPlayerImplementationListener listener;
 
-    public ListenerAdapter(IPlayerImplementationListener listener) {
+    public ExoPlayerListener(IPlayerImplementationListener listener) {
         this.listener = listener;
     }
 

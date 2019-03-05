@@ -72,7 +72,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     public void install(IEnigmaPlayerEnvironment environment) {
         mediaDrmCallback.setDrmProvider(environment.getDrmProvider());
         environment.setMediaFormatSupportSpec(supportedFormats);
-        player.addListener(new ListenerAdapter(environment.getPlayerImplementationListener()));
+        player.addListener(new ExoPlayerListener(environment.getPlayerImplementationListener()));
     }
 
     @Override
