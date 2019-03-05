@@ -8,6 +8,9 @@ import java.util.Locale;
 import java.util.Map;
 
 public class InternalExoPlayerErrorCodes {
+    private static final int SOURCE_EXCEPTION_CODE = 2;
+    private static final int RENDERED_EXCEPTION_CODE = 3;
+    private static final int UNEXPECTED_EXCEPTION_CODE = 4;
     // List of EXCEPTIONS
     private static final Map<String,Integer> lookupTable;
     static {
@@ -98,11 +101,11 @@ public class InternalExoPlayerErrorCodes {
     public static int getInternalErrorCode(ExoPlaybackException error, int defaultErrorCode) {
         switch (error.type) {
             case ExoPlaybackException.TYPE_SOURCE:
-                return getErrorCodeFromName(normalizedName(error.getSourceException()), defaultErrorCode);
+                return getErrorCodeFromName(normalizedName(error.getSourceException()), SOURCE_EXCEPTION_CODE);
             case ExoPlaybackException.TYPE_RENDERER:
-                return getErrorCodeFromName(normalizedName(error.getRendererException()), defaultErrorCode);
+                return getErrorCodeFromName(normalizedName(error.getRendererException()), RENDERED_EXCEPTION_CODE);
             case ExoPlaybackException.TYPE_UNEXPECTED:
-                return getErrorCodeFromName(normalizedName(error.getUnexpectedException()), defaultErrorCode);
+                return getErrorCodeFromName(normalizedName(error.getUnexpectedException()), UNEXPECTED_EXCEPTION_CODE);
             default:
                 return defaultErrorCode;
         }
