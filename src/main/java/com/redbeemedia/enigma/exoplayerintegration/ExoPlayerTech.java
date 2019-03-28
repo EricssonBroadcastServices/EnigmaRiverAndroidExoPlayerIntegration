@@ -28,6 +28,7 @@ import com.google.android.exoplayer2.util.Util;
 import com.redbeemedia.enigma.core.format.EnigmaMediaFormat;
 import com.redbeemedia.enigma.core.player.IEnigmaPlayerEnvironment;
 import com.redbeemedia.enigma.core.player.IPlayerImplementation;
+import com.redbeemedia.enigma.core.player.IPlayerImplementationControls;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 
 import java.util.HashSet;
@@ -73,16 +74,34 @@ public class ExoPlayerTech implements IPlayerImplementation {
         mediaDrmCallback.setDrmProvider(environment.getDrmProvider());
         environment.setMediaFormatSupportSpec(supportedFormats);
         player.addListener(new ExoPlayerListener(environment.getPlayerImplementationListener()));
+        environment.setControls(new Controls());
     }
 
-    @Override
-    public void startPlayback(String url) {
-        final MediaSource mediaSource = buildMediaSource(Uri.parse(url));
-        AndroidThreadUtil.runOnUiThread(() -> {
-            mediaDrm.revive();
-            player.prepare(mediaSource, true, false);
+    private class Controls implements IPlayerImplementationControls {
+        @Override
+        public void load(String url) {
+            final MediaSource mediaSource = buildMediaSource(Uri.parse(url));
+            AndroidThreadUtil.runOnUiThread(() -> {
+                mediaDrm.revive();
+                player.prepare(mediaSource, false, false);
+            });
+        }
+
+        @Override
+        public void start() {
             player.setPlayWhenReady(true);
-        });
+        }
+
+        @Override
+        public void seekTo(ISeekPosition seekPosition) {
+            AndroidThreadUtil.runOnUiThread(() -> {
+                if (seekPosition == ISeekPosition.TIMELINE_START) {
+                    player.seekTo(0, 0);
+                } else if (seekPosition instanceof ExoPlayerPosition) {
+                    ((ExoPlayerPosition) seekPosition).seek(player);
+                }
+            });
+        }
     }
 
     @Override
