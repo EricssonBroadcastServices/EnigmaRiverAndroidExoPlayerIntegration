@@ -35,7 +35,7 @@ dependencies {
         implementation "com.github.EricssonBroadcastServices:EnigmaRiverAndroidCore:${project.ext.libraryTag}"
     }
 
-    implementation 'com.google.android.exoplayer:exoplayer:2.9.1'
+    implementation 'com.google.android.exoplayer:exoplayer:2.9.6'
 
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.json:json:20080701'
