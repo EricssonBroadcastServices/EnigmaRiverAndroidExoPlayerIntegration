@@ -26,4 +26,9 @@ public class ExoPlayerTimelineListener implements Player.EventListener {
             listener.onTimelineBoundsChanged(timelinePositionFactory.newPosition(start), timelinePositionFactory.newPosition(duration));
         }
     }
+
+    @Override
+    public void onSeekProcessed() {
+        listener.onPositionChanged();
+    }
 }
