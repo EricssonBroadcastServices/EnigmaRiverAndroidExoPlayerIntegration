@@ -2,7 +2,12 @@ package com.redbeemedia.enigma.exoplayerintegration;
 
 import android.content.Context;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
@@ -32,6 +37,7 @@ import com.google.android.exoplayer2.util.Util;
 import com.redbeemedia.enigma.core.error.IllegalSeekPositionError;
 import com.redbeemedia.enigma.core.error.UnexpectedError;
 import com.redbeemedia.enigma.core.format.EnigmaMediaFormat;
+import com.redbeemedia.enigma.core.player.IEnigmaPlayer;
 import com.redbeemedia.enigma.core.player.IEnigmaPlayerEnvironment;
 import com.redbeemedia.enigma.core.player.IPlayerImplementation;
 import com.redbeemedia.enigma.core.player.IPlayerImplementationControlResultHandler;
@@ -39,7 +45,10 @@ import com.redbeemedia.enigma.core.player.IPlayerImplementationControls;
 import com.redbeemedia.enigma.core.player.IPlayerImplementationInternals;
 import com.redbeemedia.enigma.core.player.ITimelinePositionFactory;
 import com.redbeemedia.enigma.core.player.controls.IControlResultHandler;
+import com.redbeemedia.enigma.core.player.timeline.BaseTimelineListener;
+import com.redbeemedia.enigma.core.player.timeline.ITimeline;
 import com.redbeemedia.enigma.core.player.timeline.ITimelinePosition;
+import com.redbeemedia.enigma.core.player.timeline.TimelinePositionFormat;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 
 import java.util.HashSet;
@@ -47,6 +56,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class ExoPlayerTech implements IPlayerImplementation {
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private final DataSource.Factory mediaDataSourceFactory;
     private final ReusableExoMediaDrm<FrameworkMediaCrypto> mediaDrm;
     private SimpleExoPlayer player;
@@ -54,6 +64,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private boolean hideControllerCalled = false;
     private MediaDrmFromProviderCallback mediaDrmCallback;
     private MediaFormatSpecification supportedFormats = new MediaFormatSpecification();
+    private TimelinePositionFormat timestampFormat = TimelinePositionFormat.newFormat(new ExoPlayerDurationFormat(), "HH:mm");
+
+    private final IActivation customTimestampViewsAdded = new Activation();
+    private TextView positionView;
+    private TextView durationView;
 
     public ExoPlayerTech(Context context, String appName) {
         this.mediaDataSourceFactory = new DefaultDataSourceFactory(context, Util.getUserAgent(context, appName));
@@ -91,6 +106,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
         player.addListener(new ExoPlayerTimelineListener(player, environment.getPlayerImplementationListener(), timelinePositionFactory));
         environment.setControls(new Controls());
         environment.setInternals(new Internals(timelinePositionFactory));
+        environment.addEnigmaPlayerReadyListener(enigmaPlayer -> ExoPlayerTech.this.onReady(enigmaPlayer));
+    }
+
+    public void setTimestampFormat(TimelinePositionFormat timestampFormat) {
+        this.timestampFormat = timestampFormat;
     }
 
     private class Controls implements IPlayerImplementationControls {
@@ -244,16 +264,69 @@ public class ExoPlayerTech implements IPlayerImplementation {
         return supportedFormats;
     }
 
+
+    private void onReady(final IEnigmaPlayer enigmaPlayer) {
+        customTimestampViewsAdded.whenActive(new Runnable() {
+            @Override
+            public void run() {
+                ITimeline timeline = enigmaPlayer.getTimeline();
+                setTimestamp(positionView, timeline.getCurrentPosition());
+                setTimestamp(durationView, timeline.getCurrentEndBound());
+                timeline.addListener(new BaseTimelineListener() {
+                    @Override
+                    public void onCurrentPositionChanged(ITimelinePosition timelinePosition) {
+                        setTimestamp(positionView, timelinePosition);
+                    }
+
+                    @Override
+                    public void onBoundsChanged(ITimelinePosition start, ITimelinePosition end) {
+                        setTimestamp(durationView, end);
+                    }
+                }, handler);
+            }
+
+            private void setTimestamp(TextView view, ITimelinePosition timelinePosition) {
+                view.setText(timelinePosition != null ? timelinePosition.toString(timestampFormat) : "");
+            }
+        });
+    }
+
     public void attachView(View view) {
         if (view instanceof PlayerView) {
             ((PlayerView) view).setPlayer(player);
             playerView = (PlayerView) view;
             if(hideControllerCalled) {
                 hideControllerOnPlayerView(playerView);
+            } else {
+                View exoDurationView = playerView.findViewById(com.google.android.exoplayer2.ui.R.id.exo_duration);
+                View exoPositionView = playerView.findViewById(com.google.android.exoplayer2.ui.R.id.exo_position);
+                if (exoDurationView != null || exoPositionView != null) {
+                    if(exoDurationView == null || exoPositionView == null) {
+                        throw new IllegalStateException("Only one of R.id.exo_duration and R.id.exo_position found");
+                    }
+                    durationView = replaceExoPlayerTextView(exoDurationView);
+                    positionView = replaceExoPlayerTextView(exoPositionView);
+
+                    customTimestampViewsAdded.activate();
+                }
             }
         } else {
             throw new IllegalArgumentException("Attaching view of type " + view.getClass().getName() + " is not yet supported.");
         }
+    }
+
+    private static TextView replaceExoPlayerTextView(View exoPlayerTextView) {
+        ViewGroup viewParent = (ViewGroup) exoPlayerTextView.getParent();
+        TextView replacement = (TextView) LayoutInflater.from(exoPlayerTextView.getContext()).inflate(R.layout.exoplayer_timestamp_replacement_view, viewParent, false);
+        replaceView(exoPlayerTextView, replacement);
+        return replacement;
+    }
+
+    private static void replaceView(View oldView, View newView) {
+        ViewGroup parent = (ViewGroup) oldView.getParent();
+        int index = parent.indexOfChild(oldView);
+        parent.removeView(oldView);
+        parent.addView(newView, index);
     }
 
     public void hideController() {
