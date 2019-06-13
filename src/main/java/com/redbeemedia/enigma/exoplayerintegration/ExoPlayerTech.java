@@ -39,6 +39,7 @@ import com.redbeemedia.enigma.core.error.UnexpectedError;
 import com.redbeemedia.enigma.core.format.EnigmaMediaFormat;
 import com.redbeemedia.enigma.core.player.IEnigmaPlayer;
 import com.redbeemedia.enigma.core.player.IEnigmaPlayerEnvironment;
+import com.redbeemedia.enigma.core.player.IPlaybackTechnologyIdentifier;
 import com.redbeemedia.enigma.core.player.IPlayerImplementation;
 import com.redbeemedia.enigma.core.player.IPlayerImplementationControlResultHandler;
 import com.redbeemedia.enigma.core.player.IPlayerImplementationControls;
@@ -249,6 +250,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
             } else {
                 return null;
             }
+        }
+
+        @Override
+        public IPlaybackTechnologyIdentifier getTechnologyIdentifier() {
+            return ExoPlayerTechnologyIdentifier.get();
         }
     }
 

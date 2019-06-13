@@ -26,6 +26,8 @@ import com.redbeemedia.enigma.exoplayerintegration.error.ExoPlayerError;
             }
             if(playWhenReady) {
                 listener.onPlaybackStarted();
+            } else {
+                listener.onPlaybackPaused();
             }
         } else if(playbackState == Player.STATE_ENDED) {
             listener.onStreamEnded();
