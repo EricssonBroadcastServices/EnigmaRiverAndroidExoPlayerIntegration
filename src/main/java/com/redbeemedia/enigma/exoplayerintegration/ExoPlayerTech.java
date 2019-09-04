@@ -28,7 +28,6 @@ import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.TrackSelector;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DataSource;
@@ -50,9 +49,12 @@ import com.redbeemedia.enigma.core.player.timeline.BaseTimelineListener;
 import com.redbeemedia.enigma.core.player.timeline.ITimeline;
 import com.redbeemedia.enigma.core.player.timeline.ITimelinePosition;
 import com.redbeemedia.enigma.core.player.timeline.TimelinePositionFormat;
+import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
+import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -61,6 +63,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private final DataSource.Factory mediaDataSourceFactory;
     private final ReusableExoMediaDrm<FrameworkMediaCrypto> mediaDrm;
     private SimpleExoPlayer player;
+    private DefaultTrackSelector trackSelector;
     private PlayerView playerView = null;
     private boolean hideControllerCalled = false;
     private MediaDrmFromProviderCallback mediaDrmCallback;
@@ -79,7 +82,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
             supportedFormats.add(format);
         }
 
-        TrackSelector trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory());
+        this.trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory());
+
         DefaultRenderersFactory rendersFactory =
             new DefaultRenderersFactory(context, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
         try {
@@ -209,6 +213,28 @@ public class ExoPlayerTech implements IPlayerImplementation {
             AndroidThreadUtil.runOnUiThread(() -> {
                 try {
                     player.setVolume(volume);
+                } catch (RuntimeException e) {
+                    resultHandler.onError(new UnexpectedError(e));
+                    return;
+                }
+                resultHandler.onDone();
+            });
+        }
+
+        @Override
+        public void setSubtitleTrack(ISubtitleTrack track, final IPlayerImplementationControlResultHandler resultHandler) {
+            if(track != null && !(track instanceof  ExoSubtitleTrack)) {
+                resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, ISubtitleTrack.class.getSimpleName()+" must originate from ExoPlayer-integration"));
+                return;
+            }
+            final ExoSubtitleTrack exoSubtitleTrack = (ExoSubtitleTrack) track;
+            AndroidThreadUtil.runOnUiThread(() -> {
+                try {
+                    if(exoSubtitleTrack != null) {
+                        exoSubtitleTrack.applyTo(trackSelector);
+                    } else {
+                        ExoSubtitleTrack.applyNone(trackSelector);
+                    }
                 } catch (RuntimeException e) {
                     resultHandler.onError(new UnexpectedError(e));
                     return;
