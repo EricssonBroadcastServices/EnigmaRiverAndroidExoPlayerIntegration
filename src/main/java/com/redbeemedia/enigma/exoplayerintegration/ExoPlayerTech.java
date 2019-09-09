@@ -54,7 +54,6 @@ import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -185,7 +184,6 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 }
             } else if(seekPosition instanceof IPlayerImplementationControls.TimelineRelativePosition) {
                 long millis = ((TimelineRelativePosition) seekPosition).getMillis();
-                String uuid = UUID.randomUUID().toString();
                 AndroidThreadUtil.runOnUiThread(() -> {
                     player.seekTo(millis);
                     player.addListener(new Player.EventListener() {
