@@ -4,16 +4,16 @@ import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
+import com.redbeemedia.enigma.core.audio.IAudioTrack;
 import com.redbeemedia.enigma.core.player.track.BasePlayerImplementationTrack;
-import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ExoUtil;
 
 import java.util.Objects;
 
-public class ExoSubtitleTrack extends BasePlayerImplementationTrack implements ISubtitleTrack {
+public class ExoAudioTrack extends BasePlayerImplementationTrack implements IAudioTrack {
     private final Format format;
 
-    public ExoSubtitleTrack(Format format) {
+    public ExoAudioTrack(Format format) {
         this.format = format;
     }
 
@@ -25,20 +25,14 @@ public class ExoSubtitleTrack extends BasePlayerImplementationTrack implements I
 
     public void applyTo(DefaultTrackSelector trackSelector) {
         DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
-        parametersBuilder.setPreferredTextLanguage(format.language);
-        parametersBuilder.setRendererDisabled(ExoUtil.DEFAULT_TEXT_RENDERER_INDEX, false);
-        trackSelector.setParameters(parametersBuilder.build());
-    }
-
-    public static void applyNone(DefaultTrackSelector trackSelector) {
-        DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
-        parametersBuilder.setRendererDisabled(ExoUtil.DEFAULT_TEXT_RENDERER_INDEX, true);
+        parametersBuilder.setPreferredAudioLanguage(format.language);
+        parametersBuilder.setRendererDisabled(ExoUtil.DEFAULT_AUDIO_RENDERER_INDEX, false);
         trackSelector.setParameters(parametersBuilder.build());
     }
 
     @Override
     public boolean equals(@Nullable Object obj) {
-        return obj instanceof ExoSubtitleTrack && Objects.equals(this.format, ((ExoSubtitleTrack) obj).format);
+        return obj instanceof ExoAudioTrack && Objects.equals(this.format, ((ExoAudioTrack) obj).format);
     }
 
     @Override

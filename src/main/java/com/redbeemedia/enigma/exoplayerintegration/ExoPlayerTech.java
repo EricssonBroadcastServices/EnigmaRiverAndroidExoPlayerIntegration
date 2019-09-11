@@ -33,6 +33,7 @@ import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+import com.redbeemedia.enigma.core.audio.IAudioTrack;
 import com.redbeemedia.enigma.core.error.IllegalSeekPositionError;
 import com.redbeemedia.enigma.core.error.UnexpectedError;
 import com.redbeemedia.enigma.core.format.EnigmaMediaFormat;
@@ -51,6 +52,7 @@ import com.redbeemedia.enigma.core.player.timeline.ITimelinePosition;
 import com.redbeemedia.enigma.core.player.timeline.TimelinePositionFormat;
 import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
+import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
 
 import java.util.HashSet;
@@ -232,6 +234,29 @@ public class ExoPlayerTech implements IPlayerImplementation {
                         exoSubtitleTrack.applyTo(trackSelector);
                     } else {
                         ExoSubtitleTrack.applyNone(trackSelector);
+                    }
+                } catch (RuntimeException e) {
+                    resultHandler.onError(new UnexpectedError(e));
+                    return;
+                }
+                resultHandler.onDone();
+            });
+        }
+
+        @Override
+        public void setAudioTrack(IAudioTrack track, final IPlayerImplementationControlResultHandler resultHandler) {
+            if(track != null && !(track instanceof ExoAudioTrack)) {
+                resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, IAudioTrack.class.getSimpleName()+" must originate from ExoPlayer-integration"));
+                return;
+            }
+            final ExoAudioTrack exoAudioTrack = (ExoAudioTrack) track;
+            AndroidThreadUtil.runOnUiThread(() -> {
+                try {
+                    if(exoAudioTrack != null) {
+                        exoAudioTrack.applyTo(trackSelector);
+                    } else {
+                        resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, "track was null"));
+                        return;
                     }
                 } catch (RuntimeException e) {
                     resultHandler.onError(new UnexpectedError(e));

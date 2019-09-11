@@ -5,10 +5,12 @@ import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
+import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.redbeemedia.enigma.core.player.IPlayerImplementationListener;
 import com.redbeemedia.enigma.core.player.track.IPlayerImplementationTrack;
 import com.redbeemedia.enigma.exoplayerintegration.error.ExoPlayerError;
+import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
 
 import java.util.ArrayList;
@@ -46,7 +48,6 @@ import java.util.List;
 
     @Override
     public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-        //This is where we would pick out audio tracks in the future also
         List<IPlayerImplementationTrack> tracks = new ArrayList<>();
 
         for(int i = 0; i < trackGroups.length; ++i) {
@@ -56,13 +57,36 @@ import java.util.List;
                 if(isTextMimeType(format.containerMimeType) || isTextMimeType(format.sampleMimeType)) {
                     tracks.add(new ExoSubtitleTrack(format));
                 }
+                if(isAudioType(format.containerMimeType)) {
+                    tracks.add(new ExoAudioTrack(format));
+                }
             }
         }
 
         listener.onTracksChanged(tracks);
+        listener.onSubtitleTrackSelectionChanged(getSelected(trackSelections.get(ExoUtil.DEFAULT_TEXT_RENDERER_INDEX), format -> new ExoSubtitleTrack(format)));
+        listener.onAudioTrackSelectionChanged(getSelected(trackSelections.get(ExoUtil.DEFAULT_AUDIO_RENDERER_INDEX), format -> new ExoAudioTrack(format)));
     }
 
     private static boolean isTextMimeType(String mimeType) {
         return mimeType != null && mimeType.startsWith("text/");
+    }
+
+    private static boolean isAudioType(String mimeType) {
+        return mimeType != null && mimeType.startsWith("audio/");
+    }
+
+    private static <T> T getSelected(TrackSelection trackSelection, IFormatWrapper<T> wrapper) {
+        if(trackSelection != null) {
+            Format selectedFormat = trackSelection.getSelectedFormat();
+            if (selectedFormat != null) {
+                return wrapper.wrap(selectedFormat);
+            }
+        }
+        return null;
+    }
+
+    private interface IFormatWrapper<T> {
+        T wrap(Format format);
     }
 }
