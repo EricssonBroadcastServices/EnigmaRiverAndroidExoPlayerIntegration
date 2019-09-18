@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,6 +31,7 @@ import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
+import com.google.android.exoplayer2.ui.TimeBar;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
@@ -54,12 +56,23 @@ import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
+import com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton;
+import com.redbeemedia.enigma.exoplayerintegration.ui.FastForwardLogic;
+import com.redbeemedia.enigma.exoplayerintegration.ui.NextLogic;
+import com.redbeemedia.enigma.exoplayerintegration.ui.PauseLogic;
+import com.redbeemedia.enigma.exoplayerintegration.ui.PlayLogic;
+import com.redbeemedia.enigma.exoplayerintegration.ui.PreviousLogic;
+import com.redbeemedia.enigma.exoplayerintegration.ui.RewindLogic;
+import com.redbeemedia.enigma.exoplayerintegration.ui.TimeBarUtil;
+import com.redbeemedia.enigma.exoplayerintegration.util.LoadRequestParameterApplier;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
 public class ExoPlayerTech implements IPlayerImplementation {
+    private static final String TAG = "ExoPlayerTech";
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final DataSource.Factory mediaDataSourceFactory;
     private final ReusableExoMediaDrm<FrameworkMediaCrypto> mediaDrm;
@@ -72,6 +85,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private TimelinePositionFormat timestampFormat = TimelinePositionFormat.newFormat(new ExoPlayerDurationFormat(), "HH:mm");
 
     private final IActivation customTimestampViewsAdded = new Activation();
+    private final IActivation playerViewControlsReady = new Activation();
     private TextView positionView;
     private TextView durationView;
 
@@ -121,7 +135,14 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
     private class Controls implements IPlayerImplementationControls {
         @Override
-        public void load(String url, IPlayerImplementationControlResultHandler resultHandler) {
+        public void load(ILoadRequest loadRequest, IPlayerImplementationControlResultHandler resultHandler) {
+            String url = loadRequest.getUrl();
+            final LoadRequestParameterApplier parameterApplier = new LoadRequestParameterApplier(loadRequest) {
+                @Override
+                protected void onException(Exception e) {
+                    Log.d(TAG, "Exception while trying to apply load-parameters", e);
+                }
+            };
             final MediaSource mediaSource;
             try {
                 mediaSource = buildMediaSource(Uri.parse(url));
@@ -131,6 +152,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             }
             AndroidThreadUtil.runOnUiThread(() -> {
                 mediaDrm.revive();
+                parameterApplier.applyTo(trackSelector);
                 player.prepare(mediaSource, false, false);
                 resultHandler.onDone();
             });
@@ -344,6 +366,38 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 view.setText(timelinePosition != null ? timelinePosition.toString(timestampFormat) : "");
             }
         });
+        playerViewControlsReady.whenActive(new Runnable() {
+            @Override
+            public void run() {
+                ExoButton fastForwardButton = playerView.findViewById(R.id.exo_integration_ffwd);
+                if(fastForwardButton != null) {
+                    fastForwardButton.setLogic(new FastForwardLogic(enigmaPlayer));
+                }
+                ExoButton rewindButton = playerView.findViewById(R.id.exo_integration_rew);
+                if(rewindButton != null) {
+                    rewindButton.setLogic(new RewindLogic(enigmaPlayer));
+                }
+                ExoButton pauseButton = playerView.findViewById(R.id.exo_integration_pause);
+                if(pauseButton != null) {
+                    pauseButton.setLogic(new PauseLogic(enigmaPlayer));
+                }
+                ExoButton playButton = playerView.findViewById(R.id.exo_integration_play);
+                if(playButton != null) {
+                    playButton.setLogic(new PlayLogic(enigmaPlayer));
+                }
+                ExoButton nextButton = playerView.findViewById(R.id.exo_integration_next);
+                if(nextButton != null) {
+                    nextButton.setLogic(new NextLogic(enigmaPlayer));
+                }
+                ExoButton prevButton = playerView.findViewById(R.id.exo_integration_prev);
+                if(prevButton != null) {
+                    prevButton.setLogic(new PreviousLogic(enigmaPlayer));
+                }
+
+                TimeBar timeBar = playerView.findViewById(R.id.exo_integration_progress);
+                TimeBarUtil.connect(timeBar, enigmaPlayer);
+            }
+        });
     }
 
     public void attachView(View view) {
@@ -352,18 +406,21 @@ public class ExoPlayerTech implements IPlayerImplementation {
             playerView = (PlayerView) view;
             if(hideControllerCalled) {
                 hideControllerOnPlayerView(playerView);
+                playerViewControlsReady.destroy();
             } else {
-                View exoDurationView = playerView.findViewById(com.google.android.exoplayer2.ui.R.id.exo_duration);
-                View exoPositionView = playerView.findViewById(com.google.android.exoplayer2.ui.R.id.exo_position);
+                View exoDurationView = playerView.findViewById(R.id.exo_integration_duration);
+                View exoPositionView = playerView.findViewById(R.id.exo_integration_position);
                 if (exoDurationView != null || exoPositionView != null) {
                     if(exoDurationView == null || exoPositionView == null) {
-                        throw new IllegalStateException("Only one of R.id.exo_duration and R.id.exo_position found");
+                        throw new IllegalStateException("Only one of R.id.exo_integration_duration and R.id.exo_integration_position found");
                     }
                     durationView = replaceExoPlayerTextView(exoDurationView);
                     positionView = replaceExoPlayerTextView(exoPositionView);
 
                     customTimestampViewsAdded.activate();
                 }
+
+                playerViewControlsReady.activate();
             }
         } else {
             throw new IllegalArgumentException("Attaching view of type " + view.getClass().getName() + " is not yet supported.");

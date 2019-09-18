@@ -12,4 +12,11 @@ package com.redbeemedia.enigma.exoplayerintegration;
      */
     void whenActive(Runnable runnable);
     void activate();
+
+    /**
+     * Signals that the activation will never happen. Any call to
+     * <code>activate()</code> after this may result in an exception being
+     * thrown.
+     */
+    void destroy();
 }

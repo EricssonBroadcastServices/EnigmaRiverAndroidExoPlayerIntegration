@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /*package-protected*/ class Activation implements IActivation {
+    private boolean destroyed = false;
     private boolean active = false;
     private List<Runnable> queued = new ArrayList<>();
 
@@ -11,10 +12,12 @@ import java.util.List;
     public void whenActive(Runnable runnable) {
         boolean runNow = false;
         synchronized (this) {
-            if(active) {
-                runNow = true;
-            } else {
-                queued.add(runnable);
+            if(!destroyed) {
+                if(active) {
+                    runNow = true;
+                } else {
+                    queued.add(runnable);
+                }
             }
         }
         if(runNow) {
@@ -24,6 +27,9 @@ import java.util.List;
 
     @Override
     public synchronized void activate() {
+        if(destroyed) {
+            throw new IllegalStateException();
+        }
         active = true;
         RuntimeException exception = null;
         for(Runnable runnable : queued) {
@@ -42,5 +48,11 @@ import java.util.List;
         if(exception != null) {
             throw exception;
         }
+    }
+
+    @Override
+    public synchronized void destroy() {
+        queued.clear();
+        queued = null;
     }
 }
