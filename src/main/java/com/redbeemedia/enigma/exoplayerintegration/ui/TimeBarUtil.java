@@ -57,7 +57,11 @@ public class TimeBarUtil {
                 @Override
                 public void onScrubStop(TimeBar timeBar, long position, boolean canceled) {
                     if(!canceled) {
-                        enigmaPlayer.getControls().seekTo(position);
+                        if(currentStartBound != null) {
+                            enigmaPlayer.getControls().seekTo(currentStartBound.add(Duration.millis(position)));
+                        } else {
+                            enigmaPlayer.getControls().seekTo(position);
+                        }
                     }
                 }
             });
