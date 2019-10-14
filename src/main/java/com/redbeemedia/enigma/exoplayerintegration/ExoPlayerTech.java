@@ -352,6 +352,21 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 timeline.addListener(new BaseTimelineListener() {
                     @Override
                     public void onCurrentPositionChanged(ITimelinePosition timelinePosition) {
+                        if(timelinePosition != null) {
+                            ITimelinePosition startBound = timeline.getCurrentStartBound();
+                            if(startBound != null) {
+                                if(timelinePosition.before(startBound)) {
+                                    timelinePosition = startBound;
+                                }
+                            }
+
+                            ITimelinePosition endBound = timeline.getCurrentEndBound();
+                            if(endBound != null) {
+                                if(timelinePosition.after(endBound)) {
+                                    timelinePosition = endBound;
+                                }
+                            }
+                        }
                         setTimestamp(positionView, timelinePosition);
                     }
 
