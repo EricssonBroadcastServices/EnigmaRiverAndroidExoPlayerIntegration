@@ -17,4 +17,13 @@ import java.util.Set;
     public void add(EnigmaMediaFormat mediaFormat) {
         supportedFormats.add(mediaFormat);
     }
+
+    public boolean isWidewineSupported() {
+        for(EnigmaMediaFormat mediaFormat : supportedFormats) {
+            if(mediaFormat.getDrmTechnology() == EnigmaMediaFormat.DrmTechnology.WIDEVINE) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

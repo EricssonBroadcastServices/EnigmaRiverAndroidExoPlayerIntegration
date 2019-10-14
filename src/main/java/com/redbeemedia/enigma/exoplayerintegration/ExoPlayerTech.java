@@ -72,6 +72,7 @@ import java.util.UUID;
 
 public class ExoPlayerTech implements IPlayerImplementation {
     private static final String TAG = "ExoPlayerTech";
+    private static final UUID WIDEVINE_UUID = Util.getDrmUuid("widevine");
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final DataSource.Factory mediaDataSourceFactory;
@@ -102,15 +103,20 @@ public class ExoPlayerTech implements IPlayerImplementation {
         DefaultRenderersFactory rendersFactory =
             new DefaultRenderersFactory(context, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
         try {
-            final UUID widewineUUID = Util.getDrmUuid("widevine");
-            this.mediaDrm = new ReusableExoMediaDrm<FrameworkMediaCrypto>(new ReusableExoMediaDrm.ExoMediaDrmFactory<FrameworkMediaCrypto>() {
-                @Override
-                public ExoMediaDrm<FrameworkMediaCrypto> create() throws UnsupportedDrmException {
-                    return FrameworkMediaDrm.newInstance(widewineUUID);
-                }
-            });
-            //TODO check if mediaDrm needs to be released or if it is released when the player is released.
-            DefaultDrmSessionManager<FrameworkMediaCrypto> drmSessionManager = new DefaultDrmSessionManager<>(widewineUUID, mediaDrm, mediaDrmCallback, null, false);
+            DefaultDrmSessionManager<FrameworkMediaCrypto> drmSessionManager;
+            if(supportedFormats.isWidewineSupported()) {
+                this.mediaDrm = new ReusableExoMediaDrm<FrameworkMediaCrypto>(new ReusableExoMediaDrm.ExoMediaDrmFactory<FrameworkMediaCrypto>() {
+                    @Override
+                    public ExoMediaDrm<FrameworkMediaCrypto> create() throws UnsupportedDrmException {
+                        return FrameworkMediaDrm.newInstance(WIDEVINE_UUID);
+                    }
+                });
+                //TODO check if mediaDrm needs to be released or if it is released when the player is released.
+                drmSessionManager = new DefaultDrmSessionManager<>(WIDEVINE_UUID, mediaDrm, mediaDrmCallback, null, false);
+            } else {
+                this.mediaDrm = null;
+                drmSessionManager = null;
+            }
             this.player = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager);
         } catch (UnsupportedDrmException e) {
             throw new RuntimeException(e);
@@ -151,7 +157,9 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 return;
             }
             AndroidThreadUtil.runOnUiThread(() -> {
-                mediaDrm.revive();
+                if(mediaDrm != null) {
+                    mediaDrm.revive();
+                }
                 parameterApplier.applyTo(trackSelector);
                 player.prepare(mediaSource, false, false);
                 resultHandler.onDone();
@@ -332,15 +340,32 @@ public class ExoPlayerTech implements IPlayerImplementation {
     @Override
     public void release() {
         this.player.release();
-        this.mediaDrm.release();
+        if(this.mediaDrm != null) {
+            this.mediaDrm.release();
+        }
     }
 
     protected Set<EnigmaMediaFormat> initSupportedFormats(Set<EnigmaMediaFormat> supportedFormats) {
         supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.DASH, EnigmaMediaFormat.DrmTechnology.NONE));
-        supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.DASH, EnigmaMediaFormat.DrmTechnology.WIDEVINE));
+
+        //Check if we can instantiate FrameworkMediaDrm using WIDEWINE_UUID. If we get any exception, this devices can not support Widewine
+        if(canInstantiateWidewineDrm()) {
+            supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.DASH, EnigmaMediaFormat.DrmTechnology.WIDEVINE));
+        } else {
+            Log.d(TAG, "Widewine does not seem to be supported on this device");
+        }
+        
         return supportedFormats;
     }
 
+    private boolean canInstantiateWidewineDrm() {
+        try {
+            FrameworkMediaDrm.newInstance(WIDEVINE_UUID);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     private void onReady(final IEnigmaPlayer enigmaPlayer) {
         customTimestampViewsAdded.whenActive(new Runnable() {
