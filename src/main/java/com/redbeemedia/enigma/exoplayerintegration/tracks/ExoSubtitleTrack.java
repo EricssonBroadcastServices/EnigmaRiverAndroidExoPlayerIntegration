@@ -2,30 +2,25 @@ package com.redbeemedia.enigma.exoplayerintegration.tracks;
 
 import androidx.annotation.Nullable;
 
-import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.redbeemedia.enigma.core.player.track.BasePlayerImplementationTrack;
 import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ExoUtil;
 
-import java.util.Objects;
-
-public class ExoSubtitleTrack extends BasePlayerImplementationTrack implements ISubtitleTrack {
-    private final Format format;
-
-    public ExoSubtitleTrack(Format format) {
-        this.format = format;
+public final class ExoSubtitleTrack extends AbstractExoTrack implements ISubtitleTrack {
+    public ExoSubtitleTrack(String language) {
+        super(language);
     }
 
 
     @Override
     public String getLanguageCode() {
-        return format.language;
+        return super.getLanguageCode();
     }
 
+    @Override
     public void applyTo(DefaultTrackSelector trackSelector) {
         DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
-        parametersBuilder.setPreferredTextLanguage(format.language);
+        parametersBuilder.setPreferredTextLanguage(getLanguageCode());
         parametersBuilder.setRendererDisabled(ExoUtil.DEFAULT_TEXT_RENDERER_INDEX, false);
         trackSelector.setParameters(parametersBuilder.build());
     }
@@ -38,11 +33,6 @@ public class ExoSubtitleTrack extends BasePlayerImplementationTrack implements I
 
     @Override
     public boolean equals(@Nullable Object obj) {
-        return obj instanceof ExoSubtitleTrack && Objects.equals(this.format, ((ExoSubtitleTrack) obj).format);
-    }
-
-    @Override
-    public int hashCode() {
-        return format != null ? format.hashCode() : 0;
+        return obj instanceof ExoSubtitleTrack && super.equals(obj);
     }
 }
