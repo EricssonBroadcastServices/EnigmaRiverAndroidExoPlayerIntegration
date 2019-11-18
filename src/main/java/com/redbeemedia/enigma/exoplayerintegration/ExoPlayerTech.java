@@ -54,15 +54,14 @@ import com.redbeemedia.enigma.core.player.timeline.ITimelinePosition;
 import com.redbeemedia.enigma.core.player.timeline.TimelinePositionFormat;
 import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
+import com.redbeemedia.enigma.core.virtualui.IVirtualButton;
+import com.redbeemedia.enigma.core.virtualui.IVirtualControls;
+import com.redbeemedia.enigma.core.virtualui.IVirtualControlsSettings;
+import com.redbeemedia.enigma.core.virtualui.VirtualControlsSettings;
+import com.redbeemedia.enigma.core.virtualui.impl.VirtualControls;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton;
-import com.redbeemedia.enigma.exoplayerintegration.ui.FastForwardLogic;
-import com.redbeemedia.enigma.exoplayerintegration.ui.NextLogic;
-import com.redbeemedia.enigma.exoplayerintegration.ui.PauseLogic;
-import com.redbeemedia.enigma.exoplayerintegration.ui.PlayLogic;
-import com.redbeemedia.enigma.exoplayerintegration.ui.PreviousLogic;
-import com.redbeemedia.enigma.exoplayerintegration.ui.RewindLogic;
 import com.redbeemedia.enigma.exoplayerintegration.ui.TimeBarUtil;
 import com.redbeemedia.enigma.exoplayerintegration.util.LoadRequestParameterApplier;
 
@@ -407,37 +406,40 @@ public class ExoPlayerTech implements IPlayerImplementation {
             }
         });
         playerViewControlsReady.whenActive(new Runnable() {
+            private void connectButtonIfExists(ExoButton exoButton, IVirtualButton virtualButton) {
+                connectButtonIfExists(exoButton, virtualButton, false);
+            }
+            private void connectButtonIfExists(ExoButton exoButton, IVirtualButton virtualButton, boolean hideIfDisabled) {
+                if(exoButton != null) {
+                    exoButton.setVirtualButton(virtualButton, handler);
+                    if(hideIfDisabled) {
+                        exoButton.hideIfDisabled();
+                    }
+                }
+            }
             @Override
             public void run() {
-                ExoButton fastForwardButton = playerView.findViewById(R.id.exo_integration_ffwd);
-                if(fastForwardButton != null) {
-                    fastForwardButton.setLogic(new FastForwardLogic(enigmaPlayer));
-                }
-                ExoButton rewindButton = playerView.findViewById(R.id.exo_integration_rew);
-                if(rewindButton != null) {
-                    rewindButton.setLogic(new RewindLogic(enigmaPlayer));
-                }
-                ExoButton pauseButton = playerView.findViewById(R.id.exo_integration_pause);
-                if(pauseButton != null) {
-                    pauseButton.setLogic(new PauseLogic(enigmaPlayer));
-                }
-                ExoButton playButton = playerView.findViewById(R.id.exo_integration_play);
-                if(playButton != null) {
-                    playButton.setLogic(new PlayLogic(enigmaPlayer));
-                }
-                ExoButton nextButton = playerView.findViewById(R.id.exo_integration_next);
-                if(nextButton != null) {
-                    nextButton.setLogic(new NextLogic(enigmaPlayer));
-                }
-                ExoButton prevButton = playerView.findViewById(R.id.exo_integration_prev);
-                if(prevButton != null) {
-                    prevButton.setLogic(new PreviousLogic(enigmaPlayer));
-                }
+                IVirtualControls virtualControls = VirtualControls.create(enigmaPlayer, createVirtualControlsSettings());
+
+                connectButtonIfExists(playerView.findViewById(R.id.exo_integration_ffwd), virtualControls.getFastForward());
+                connectButtonIfExists(playerView.findViewById(R.id.exo_integration_rew), virtualControls.getRewind());
+                connectButtonIfExists(playerView.findViewById(R.id.exo_integration_pause), virtualControls.getPause(), true);
+                connectButtonIfExists(playerView.findViewById(R.id.exo_integration_play), virtualControls.getPlay(), true);
+                connectButtonIfExists(playerView.findViewById(R.id.exo_integration_next), virtualControls.getNextProgram());
+                connectButtonIfExists(playerView.findViewById(R.id.exo_integration_prev), virtualControls.getRestart());
 
                 TimeBar timeBar = playerView.findViewById(R.id.exo_integration_progress);
                 TimeBarUtil.connect(timeBar, enigmaPlayer);
             }
         });
+    }
+
+    /**
+     * Override this to change or implement your own VirtualControlsSettings.
+     * @return
+     */
+    protected IVirtualControlsSettings createVirtualControlsSettings() {
+        return new VirtualControlsSettings();
     }
 
     public void attachView(View view) {
