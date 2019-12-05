@@ -47,6 +47,7 @@ public class ExoButton extends ImageButton {
         AndroidThreadUtil.runOnUiThread(() -> {
             ExoButton.this.setVisibility(visibility);
             ExoButton.this.setEnabled(enabled);
+            ExoButton.this.setAlpha(enabled ? 1f : 0.5f);
             ExoButton.this.invalidate();
         });
     }

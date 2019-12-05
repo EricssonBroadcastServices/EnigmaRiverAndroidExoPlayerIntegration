@@ -426,7 +426,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 connectButtonIfExists(playerView.findViewById(R.id.exo_integration_pause), virtualControls.getPause(), true);
                 connectButtonIfExists(playerView.findViewById(R.id.exo_integration_play), virtualControls.getPlay(), true);
                 connectButtonIfExists(playerView.findViewById(R.id.exo_integration_next), virtualControls.getNextProgram());
-                connectButtonIfExists(playerView.findViewById(R.id.exo_integration_prev), virtualControls.getRestart());
+                connectButtonIfExists(playerView.findViewById(R.id.exo_integration_prev), virtualControls.getPreviousProgram());
 
                 TimeBar timeBar = playerView.findViewById(R.id.exo_integration_progress);
                 TimeBarUtil.connect(timeBar, enigmaPlayer);
