@@ -305,27 +305,39 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public ITimelinePosition getCurrentPosition() {
-            return timelinePositionFactory.newPosition(player.getCurrentPosition());
+            try {
+                return AndroidThreadUtil.getBlockingOnUiThread(() -> timelinePositionFactory.newPosition(player.getCurrentPosition()));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
         public ITimelinePosition getCurrentStartBound() {
-            Timeline timeline = player.getCurrentTimeline();
-            if(timeline.getWindowCount() > 0) {
-                long startMs = TimelineUtil.getStartMs(player, timeline, player.getCurrentWindowIndex());
-                return timelinePositionFactory.newPosition(startMs);
-            } else {
+            try {
+                Timeline timeline = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentTimeline());
+                if(timeline.getWindowCount() > 0) {
+                    long startMs = TimelineUtil.getStartMs(player, timeline, player.getCurrentWindowIndex());
+                    return timelinePositionFactory.newPosition(startMs);
+                } else {
+                    return null;
+                }
+            } catch (InterruptedException e) {
                 return null;
             }
         }
 
         @Override
         public ITimelinePosition getCurrentEndBound() {
-            Timeline timeline = player.getCurrentTimeline();
-            if(timeline.getWindowCount() > 0) {
-                long duration = TimelineUtil.getDurationMs(player, timeline, player.getCurrentWindowIndex());
-                return timelinePositionFactory.newPosition(duration);
-            } else {
+            try {
+                Timeline timeline = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentTimeline());
+                if(timeline.getWindowCount() > 0) {
+                    long duration = TimelineUtil.getDurationMs(player, timeline, player.getCurrentWindowIndex());
+                    return timelinePositionFactory.newPosition(duration);
+                } else {
+                    return null;
+                }
+            } catch (InterruptedException e) {
                 return null;
             }
         }

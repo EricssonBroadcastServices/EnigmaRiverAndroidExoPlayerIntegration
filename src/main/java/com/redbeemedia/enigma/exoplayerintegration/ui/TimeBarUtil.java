@@ -6,6 +6,7 @@ import com.redbeemedia.enigma.core.player.timeline.BaseTimelineListener;
 import com.redbeemedia.enigma.core.player.timeline.ITimeline;
 import com.redbeemedia.enigma.core.player.timeline.ITimelinePosition;
 import com.redbeemedia.enigma.core.time.Duration;
+import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 
 public class TimeBarUtil {
 
@@ -42,7 +43,9 @@ public class TimeBarUtil {
 
                 @Override
                 public void onVisibilityChanged(boolean visible) {
-                    timeBar.setEnabled(visible);
+                    AndroidThreadUtil.runOnUiThread(() -> {
+                        timeBar.setEnabled(visible);
+                    });
                 }
             });
             timeBar.addListener(new TimeBar.OnScrubListener() {
@@ -57,19 +60,23 @@ public class TimeBarUtil {
                 @Override
                 public void onScrubStop(TimeBar timeBar, long position, boolean canceled) {
                     if(!canceled) {
-                        if(currentStartBound != null) {
-                            enigmaPlayer.getControls().seekTo(currentStartBound.add(Duration.millis(position)));
-                        } else {
-                            enigmaPlayer.getControls().seekTo(position);
-                        }
+                        AndroidThreadUtil.runOnUiThread(() -> {
+                            if(currentStartBound != null) {
+                                enigmaPlayer.getControls().seekTo(currentStartBound.add(Duration.millis(position)));
+                            } else {
+                                enigmaPlayer.getControls().seekTo(position);
+                            }
+                        });
                     }
                 }
             });
         }
 
         private void updateTimeBar() {
-            timeBar.setDuration(getDurationInMillis());
-            timeBar.setPosition(getPositionInMillis());
+            AndroidThreadUtil.runOnUiThread(() -> {
+                timeBar.setDuration(getDurationInMillis());
+                timeBar.setPosition(getPositionInMillis());
+            });
         }
 
         private long getDurationInMillis() {
