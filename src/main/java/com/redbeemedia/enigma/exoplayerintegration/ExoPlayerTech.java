@@ -64,6 +64,7 @@ import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton;
 import com.redbeemedia.enigma.exoplayerintegration.ui.TimeBarUtil;
 import com.redbeemedia.enigma.exoplayerintegration.util.LoadRequestParameterApplier;
+import com.redbeemedia.enigma.exoplayerintegration.util.MediaSourceFactoryConfigurator;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -150,7 +151,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             };
             final MediaSource mediaSource;
             try {
-                mediaSource = buildMediaSource(Uri.parse(url));
+                mediaSource = buildMediaSource(Uri.parse(url), new MediaSourceFactoryConfigurator(loadRequest));
             } catch (RuntimeException e) {
                 resultHandler.onError(new UnexpectedError(e));
                 return;
@@ -514,20 +515,20 @@ public class ExoPlayerTech implements IPlayerImplementation {
         });
     }
 
-    private MediaSource buildMediaSource(Uri uri) {
+    private MediaSource buildMediaSource(Uri uri, MediaSourceFactoryConfigurator configurator) {
         @C.ContentType int type = Util.inferContentType(uri);
         switch (type) {
             case C.TYPE_DASH:
-                return new DashMediaSource.Factory(mediaDataSourceFactory)
+                return configurator.configure(new DashMediaSource.Factory(mediaDataSourceFactory))
                     .createMediaSource(uri);
             case C.TYPE_SS:
-                return new SsMediaSource.Factory(mediaDataSourceFactory)
+                return configurator.configure(new SsMediaSource.Factory(mediaDataSourceFactory))
                     .createMediaSource(uri);
             case C.TYPE_HLS:
-                return new HlsMediaSource.Factory(mediaDataSourceFactory)
+                return configurator.configure(new HlsMediaSource.Factory(mediaDataSourceFactory))
                     .createMediaSource(uri);
             case C.TYPE_OTHER:
-                return new ExtractorMediaSource.Factory(mediaDataSourceFactory)
+                return configurator.configure(new ExtractorMediaSource.Factory(mediaDataSourceFactory))
                     .createMediaSource(uri);
             default:
                 throw new IllegalStateException("Unsupported type: " + type);
