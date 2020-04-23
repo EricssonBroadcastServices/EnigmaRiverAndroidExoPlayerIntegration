@@ -59,6 +59,7 @@ import com.redbeemedia.enigma.core.virtualui.IVirtualControls;
 import com.redbeemedia.enigma.core.virtualui.IVirtualControlsSettings;
 import com.redbeemedia.enigma.core.virtualui.VirtualControlsSettings;
 import com.redbeemedia.enigma.core.virtualui.impl.VirtualControls;
+import com.redbeemedia.enigma.exoplayerintegration.drift.IDriftListener;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton;
@@ -90,6 +91,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private TextView positionView;
     private TextView durationView;
 
+    private DriftMeter driftMeter;
+
     public ExoPlayerTech(Context context, String appName) {
         this.mediaDataSourceFactory = new DefaultDataSourceFactory(context, Util.getUserAgent(context, appName));
         this.mediaDrmCallback = new MediaDrmFromProviderCallback(context,appName);
@@ -118,6 +121,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 drmSessionManager = null;
             }
             this.player = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager);
+            this.driftMeter = new DriftMeter(player, handler);
         } catch (UnsupportedDrmException e) {
             throw new RuntimeException(e);
         }
@@ -133,6 +137,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
         environment.setControls(new Controls());
         environment.setInternals(new Internals(timelinePositionFactory));
         environment.addEnigmaPlayerReadyListener(enigmaPlayer -> ExoPlayerTech.this.onReady(enigmaPlayer));
+        environment.addEnigmaPlayerReadyListener(driftMeter);
     }
 
     public void setTimestampFormat(TimelinePositionFormat timestampFormat) {
@@ -501,6 +506,10 @@ public class ExoPlayerTech implements IPlayerImplementation {
         if(playerView != null) {
             hideControllerOnPlayerView(playerView);
         }
+    }
+
+    public boolean addDriftListener(IDriftListener driftListener) {
+        return driftMeter.addDriftListener(driftListener);
     }
 
     private static void hideControllerOnPlayerView(PlayerView playerView) {
