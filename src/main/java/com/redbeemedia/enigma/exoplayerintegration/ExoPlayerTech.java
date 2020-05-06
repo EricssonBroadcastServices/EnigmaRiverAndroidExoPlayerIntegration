@@ -94,6 +94,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private DriftMeter driftMeter;
 
     public ExoPlayerTech(Context context, String appName) {
+        ExoPlayerIntegrationContext.assertInitialized(); //Assert module initialized
+
         this.mediaDataSourceFactory = new DefaultDataSourceFactory(context, Util.getUserAgent(context, appName));
         this.mediaDrmCallback = new MediaDrmFromProviderCallback(context,appName);
 
