@@ -28,12 +28,17 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
 
     private long offsetMs = C.TIME_UNSET;
 
+    private volatile boolean exoPlayerReleased = false;
+
     public DriftMeter(ExoPlayer player, Handler handler) {
         this.player = player;
         this.handler = handler;
     }
 
     public boolean markReferencePoint() {
+        if(exoPlayerReleased) {
+            return false;
+        }
         long startTimeMs = getTimeMs();
 
         long positionMs;
@@ -64,6 +69,9 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
     }
 
     public long getCurrentPositionMs() {
+        if(exoPlayerReleased) {
+            return C.TIME_UNSET;
+        }
         long windowStartTimeMs;
         synchronized (window) {
             windowStartTimeMs = player.getCurrentTimeline().getWindow(player.getCurrentWindowIndex(), window).windowStartTimeMs;
@@ -121,15 +129,17 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
                 Duration drift = Duration.millis(driftMs);
 
                 listeners.onDriftUpdated(speed -> {
-                    PlaybackParameters currentPlaybackParameters = player.getPlaybackParameters();
-                    player.setPlaybackParameters(new PlaybackParameters(speed, currentPlaybackParameters.pitch, currentPlaybackParameters.skipSilence));
+                    if(!exoPlayerReleased) {
+                        PlaybackParameters currentPlaybackParameters = player.getPlaybackParameters();
+                        player.setPlaybackParameters(new PlaybackParameters(speed, currentPlaybackParameters.pitch, currentPlaybackParameters.skipSilence));
+                    }
                 }, drift);
             }
         }, handler);
     }
 
     private void updateReferencePoint(IEnigmaPlayer enigmaPlayer) {
-        if(player.isCurrentWindowDynamic()) {
+        if(!exoPlayerReleased && player.isCurrentWindowDynamic()) {
             if(!markReferencePoint()) {
                 enigmaPlayer.getTimeline().addListener(new BaseTimelineListener() {
                     @Override
@@ -148,6 +158,10 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
 
     public boolean removeDriftListener(IDriftListener driftListener) {
         return listeners.removeListener(driftListener);
+    }
+
+    public void release() {
+        exoPlayerReleased = true;
     }
 
     private static class ListenerCollector extends Collector<IDriftListener> implements IDriftListener {

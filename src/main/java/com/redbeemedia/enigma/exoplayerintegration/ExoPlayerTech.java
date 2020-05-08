@@ -358,6 +358,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
     @Override
     public void release() {
+        this.driftMeter.release();
         this.player.release();
         if(this.mediaDrm != null) {
             this.mediaDrm.release();
