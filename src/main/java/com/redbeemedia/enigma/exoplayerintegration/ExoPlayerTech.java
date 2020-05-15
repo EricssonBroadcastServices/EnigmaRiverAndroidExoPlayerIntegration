@@ -11,9 +11,11 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.IllegalSeekPositionException;
+import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
@@ -122,11 +124,17 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 this.mediaDrm = null;
                 drmSessionManager = null;
             }
-            this.player = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager);
+            LoadControl loadControl = createLoadControl();
+            this.player = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, loadControl,drmSessionManager);
             this.driftMeter = new DriftMeter(player, handler);
         } catch (UnsupportedDrmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected LoadControl createLoadControl() {
+        return new DefaultLoadControl.Builder()
+                .createDefaultLoadControl();
     }
 
     @Override
