@@ -17,6 +17,8 @@ import com.redbeemedia.enigma.core.player.timeline.ITimelinePosition;
 import com.redbeemedia.enigma.core.time.Duration;
 import com.redbeemedia.enigma.core.util.Collector;
 import com.redbeemedia.enigma.core.util.HandlerWrapper;
+import com.redbeemedia.enigma.core.util.OpenContainer;
+import com.redbeemedia.enigma.core.util.OpenContainerUtil;
 import com.redbeemedia.enigma.exoplayerintegration.drift.IDriftListener;
 import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
 
@@ -25,6 +27,7 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
     private final Handler handler;
     private final Timeline.Window window = new Timeline.Window();
     private final ListenerCollector listeners = new ListenerCollector();
+    private final OpenContainer<Boolean> hasPlaybackSession = new OpenContainer<>(false);
 
     private long offsetMs = C.TIME_UNSET;
 
@@ -36,21 +39,26 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
     }
 
     public boolean markReferencePoint() {
-        if(exoPlayerReleased) {
+        if(exoPlayerReleased || !OpenContainerUtil.getValueSynchronized(hasPlaybackSession)) {
             return false;
         }
         long startTimeMs = getTimeMs();
 
         long positionMs;
         synchronized (window) {
-            Timeline.Window currentWindow = player.getCurrentTimeline().getWindow(player.getCurrentWindowIndex(), window);
-            if(!currentWindow.isDynamic) {
+            try {
+                Timeline.Window currentWindow = player.getCurrentTimeline().getWindow(player.getCurrentWindowIndex(), window);
+                if(!currentWindow.isDynamic) {
+                    return false;
+                }
+                if(currentWindow.windowStartTimeMs == C.TIME_UNSET) {
+                    return false;
+                }
+                positionMs = currentWindow.windowStartTimeMs + player.getCurrentPosition();
+            } catch (Exception e) {
+                e.printStackTrace();
                 return false;
             }
-            if(currentWindow.windowStartTimeMs == C.TIME_UNSET) {
-                return false;
-            }
-            positionMs = currentWindow.windowStartTimeMs + player.getCurrentPosition();
         }
         offsetMs = positionMs-startTimeMs;
         return true;
@@ -69,12 +77,17 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
     }
 
     public long getCurrentPositionMs() {
-        if(exoPlayerReleased) {
+        if(exoPlayerReleased || !OpenContainerUtil.getValueSynchronized(hasPlaybackSession)) {
             return C.TIME_UNSET;
         }
         long windowStartTimeMs;
-        synchronized (window) {
-            windowStartTimeMs = player.getCurrentTimeline().getWindow(player.getCurrentWindowIndex(), window).windowStartTimeMs;
+        try {
+            synchronized (window) {
+                windowStartTimeMs = player.getCurrentTimeline().getWindow(player.getCurrentWindowIndex(), window).windowStartTimeMs;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return C.TIME_UNSET;
         }
         if(windowStartTimeMs == C.TIME_UNSET) {
             return C.TIME_UNSET;
@@ -129,11 +142,17 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
                 Duration drift = Duration.millis(driftMs);
 
                 listeners.onDriftUpdated(speed -> {
-                    if(!exoPlayerReleased) {
+                    if(!exoPlayerReleased && OpenContainerUtil.getValueSynchronized(hasPlaybackSession)) {
                         PlaybackParameters currentPlaybackParameters = player.getPlaybackParameters();
                         player.setPlaybackParameters(new PlaybackParameters(speed, currentPlaybackParameters.pitch, currentPlaybackParameters.skipSilence));
                     }
                 }, drift);
+            }
+        }, handler);
+        enigmaPlayer.addListener(new BaseEnigmaPlayerListener() {
+            @Override
+            public void onPlaybackSessionChanged(IPlaybackSession from, IPlaybackSession to) {
+                OpenContainerUtil.setValueSynchronized(hasPlaybackSession, to != null, null);
             }
         }, handler);
     }
