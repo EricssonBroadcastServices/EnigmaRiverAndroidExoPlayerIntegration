@@ -217,18 +217,18 @@ public class ExoPlayerTech implements IPlayerImplementation {
                     }
                 });
             } else if (seekPosition == ISeekPosition.LIVE_EDGE) {
-                if(!player.isCurrentWindowDynamic()) {
-                    resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.INAPPLICABLE_FOR_CURRENT_STREAM, "Video is not dynamic"));
-                } else {
-                    AndroidThreadUtil.runOnUiThread(() -> {
+                AndroidThreadUtil.runOnUiThread(() -> {
+                    if(!player.isCurrentWindowDynamic()) {
+                        resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.INAPPLICABLE_FOR_CURRENT_STREAM, "Video is not dynamic"));
+                    } else {
                         try {
                             player.seekToDefaultPosition();
                             resultHandler.onDone();
                         } catch (IllegalSeekPositionException e) {
                             resultHandler.onError(new IllegalSeekPositionError(e));
                         }
-                    });
-                }
+                    }
+                });
             } else if(seekPosition instanceof IPlayerImplementationControls.TimelineRelativePosition) {
                 long millis = ((TimelineRelativePosition) seekPosition).getMillis();
                 AndroidThreadUtil.runOnUiThread(() -> {
@@ -333,7 +333,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
             try {
                 Timeline timeline = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentTimeline());
                 if(timeline.getWindowCount() > 0) {
-                    long startMs = TimelineUtil.getStartMs(player, timeline, player.getCurrentWindowIndex());
+                    int currentWindowIndex = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentWindowIndex());
+                    long startMs = TimelineUtil.getStartMs(player, timeline, currentWindowIndex);
                     return timelinePositionFactory.newPosition(startMs);
                 } else {
                     return null;
@@ -348,7 +349,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
             try {
                 Timeline timeline = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentTimeline());
                 if(timeline.getWindowCount() > 0) {
-                    long duration = TimelineUtil.getDurationMs(player, timeline, player.getCurrentWindowIndex());
+                    int currentWindowIndex = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentWindowIndex());
+                    long duration = TimelineUtil.getDurationMs(player, timeline, currentWindowIndex);
                     return timelinePositionFactory.newPosition(duration);
                 } else {
                     return null;
