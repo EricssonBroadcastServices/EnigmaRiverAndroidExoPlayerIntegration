@@ -384,6 +384,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
         } else {
             Log.d(TAG, "Widewine does not seem to be supported on this device");
         }
+
+        supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.HLS, EnigmaMediaFormat.DrmTechnology.NONE));
         
         return supportedFormats;
     }
