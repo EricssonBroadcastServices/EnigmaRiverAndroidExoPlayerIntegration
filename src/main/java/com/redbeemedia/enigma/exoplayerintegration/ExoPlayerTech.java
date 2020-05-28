@@ -31,6 +31,7 @@ import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
+import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.ui.TimeBar;
@@ -105,7 +106,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             supportedFormats.add(format);
         }
 
-        this.trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory());
+        this.trackSelector = new DefaultTrackSelector(createTrackSelectionFactory());
 
         DefaultRenderersFactory rendersFactory =
             new DefaultRenderersFactory(context, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
@@ -130,6 +131,10 @@ public class ExoPlayerTech implements IPlayerImplementation {
         } catch (UnsupportedDrmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected TrackSelection.Factory createTrackSelectionFactory() {
+        return new AdaptiveTrackSelection.Factory();
     }
 
     protected LoadControl createLoadControl() {
