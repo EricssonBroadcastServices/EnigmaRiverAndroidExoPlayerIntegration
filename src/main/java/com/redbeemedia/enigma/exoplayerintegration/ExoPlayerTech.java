@@ -99,7 +99,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     public ExoPlayerTech(Context context, String appName) {
         ExoPlayerIntegrationContext.assertInitialized(); //Assert module initialized
 
-        this.mediaDataSourceFactory = new DefaultDataSourceFactory(context, Util.getUserAgent(context, appName));
+        this.mediaDataSourceFactory = createDataSourceFactory(context, Util.getUserAgent(context, appName));
         this.mediaDrmCallback = new MediaDrmFromProviderCallback(context,appName);
 
         for(EnigmaMediaFormat format : initSupportedFormats(new HashSet<>())) {
@@ -131,6 +131,10 @@ public class ExoPlayerTech implements IPlayerImplementation {
         } catch (UnsupportedDrmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected DataSource.Factory createDataSourceFactory(Context context, String userAgent) {
+        return new DefaultDataSourceFactory(context, userAgent);
     }
 
     protected TrackSelection.Factory createTrackSelectionFactory() {
