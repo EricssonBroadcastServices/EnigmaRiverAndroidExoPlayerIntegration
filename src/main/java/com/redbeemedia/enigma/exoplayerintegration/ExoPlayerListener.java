@@ -14,6 +14,7 @@ import com.redbeemedia.enigma.core.player.track.IPlayerImplementationTrack;
 import com.redbeemedia.enigma.exoplayerintegration.error.ExoPlayerError;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
+import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoVideoTrack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,7 @@ import java.util.List;
 /*package-protected*/ class ExoPlayerListener implements Player.EventListener {
     private IPlayerImplementationListener listener;
     private int lastState = Player.STATE_IDLE;
+    private boolean signalLoadedOnReady = true;
 
     public ExoPlayerListener(IPlayerImplementationListener listener) {
         this.listener = listener;
@@ -34,8 +36,9 @@ import java.util.List;
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
         if(playbackState == Player.STATE_READY) {
-            if(lastState != Player.STATE_READY) {
+            if(signalLoadedOnReady) {
                 listener.onLoadCompleted();
+                signalLoadedOnReady = false;
             }
             if(playWhenReady) {
                 listener.onPlaybackStarted();
@@ -44,6 +47,11 @@ import java.util.List;
             }
         } else if(playbackState == Player.STATE_ENDED) {
             listener.onStreamEnded();
+            signalLoadedOnReady = true;
+        } else if(playbackState == Player.STATE_BUFFERING) {
+            listener.onPlaybackBuffering();
+        } else if(playbackState == Player.STATE_IDLE) {
+            signalLoadedOnReady = true;
         }
         this.lastState = playbackState;
     }
@@ -68,12 +76,19 @@ import java.util.List;
                         tracks.add(audioTrack);
                     }
                 }
+                if(isVideoType(format.containerMimeType) || isVideoType(format.sampleMimeType)) {
+                    ExoVideoTrack videoTrack = new ExoVideoTrack(format);
+                    if(!tracks.contains(videoTrack)) {
+                        tracks.add(videoTrack);
+                    }
+                }
             }
         }
 
         listener.onTracksChanged(tracks);
         listener.onSubtitleTrackSelectionChanged(getSelected(trackSelections.get(ExoUtil.DEFAULT_TEXT_RENDERER_INDEX), format -> new ExoSubtitleTrack(format.language)));
         listener.onAudioTrackSelectionChanged(getSelected(trackSelections.get(ExoUtil.DEFAULT_AUDIO_RENDERER_INDEX), format -> new ExoAudioTrack(format.language)));
+        listener.onVideoTrackSelectionChanged(getSelected(trackSelections.get(ExoUtil.DEFAULT_VIDEO_RENDERER_INDEX), format -> new ExoVideoTrack(format)));
     }
 
     private static boolean isTextMimeType(String mimeType) {
@@ -82,6 +97,10 @@ import java.util.List;
 
     private static boolean isAudioType(String mimeType) {
         return MimeTypes.getTrackType(mimeType) == C.TRACK_TYPE_AUDIO;
+    }
+
+    private static boolean isVideoType(String mimeType) {
+        return MimeTypes.getTrackType(mimeType) == C.TRACK_TYPE_VIDEO;
     }
 
     private static <T> T getSelected(TrackSelection trackSelection, IFormatWrapper<T> wrapper) {
