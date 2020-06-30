@@ -11,11 +11,9 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.IllegalSeekPositionException;
-import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
@@ -31,7 +29,6 @@ import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.ui.TimeBar;
@@ -99,14 +96,14 @@ public class ExoPlayerTech implements IPlayerImplementation {
     public ExoPlayerTech(Context context, String appName) {
         ExoPlayerIntegrationContext.assertInitialized(); //Assert module initialized
 
-        this.mediaDataSourceFactory = createDataSourceFactory(context, Util.getUserAgent(context, appName));
+        this.mediaDataSourceFactory = new DefaultDataSourceFactory(context, Util.getUserAgent(context, appName));
         this.mediaDrmCallback = new MediaDrmFromProviderCallback(context,appName);
 
         for(EnigmaMediaFormat format : initSupportedFormats(new HashSet<>())) {
             supportedFormats.add(format);
         }
 
-        this.trackSelector = new DefaultTrackSelector(createTrackSelectionFactory());
+        this.trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory());
 
         DefaultRenderersFactory rendersFactory =
             new DefaultRenderersFactory(context, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
@@ -125,25 +122,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 this.mediaDrm = null;
                 drmSessionManager = null;
             }
-            LoadControl loadControl = createLoadControl();
-            this.player = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, loadControl,drmSessionManager);
+            this.player = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager);
             this.driftMeter = new DriftMeter(player, handler);
         } catch (UnsupportedDrmException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    protected DataSource.Factory createDataSourceFactory(Context context, String userAgent) {
-        return new DefaultDataSourceFactory(context, userAgent);
-    }
-
-    protected TrackSelection.Factory createTrackSelectionFactory() {
-        return new AdaptiveTrackSelection.Factory();
-    }
-
-    protected LoadControl createLoadControl() {
-        return new DefaultLoadControl.Builder()
-                .createDefaultLoadControl();
     }
 
     @Override
