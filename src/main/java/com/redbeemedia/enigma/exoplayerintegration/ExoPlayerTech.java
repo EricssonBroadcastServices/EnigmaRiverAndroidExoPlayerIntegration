@@ -149,7 +149,6 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private class Controls implements IPlayerImplementationControls {
         @Override
         public void load(ILoadRequest loadRequest, IPlayerImplementationControlResultHandler resultHandler) {
-            String url = loadRequest.getUrl();
             final LoadRequestParameterApplier parameterApplier = new LoadRequestParameterApplier(loadRequest) {
                 @Override
                 protected void onException(Exception e) {
@@ -158,17 +157,25 @@ public class ExoPlayerTech implements IPlayerImplementation {
             };
             final MediaSource mediaSource;
             try {
-                mediaSource = buildMediaSource(Uri.parse(url), new MediaSourceFactoryConfigurator(loadRequest));
+                mediaSource = buildMediaSource(loadRequest);
+            } catch(ControlRequestResolutionException earlyResolution) {
+                earlyResolution.apply(resultHandler);
+                return;
             } catch (RuntimeException e) {
                 resultHandler.onError(new UnexpectedError(e));
                 return;
             }
             AndroidThreadUtil.runOnUiThread(() -> {
-                if(mediaDrm != null) {
-                    mediaDrm.revive();
+                try {
+                    if(mediaDrm != null) {
+                        mediaDrm.revive();
+                    }
+                    parameterApplier.applyTo(trackSelector);
+                    player.prepare(mediaSource, true, true);
+                } catch (Exception e) {
+                    resultHandler.onError(new UnexpectedError(e));
+                    return;
                 }
-                parameterApplier.applyTo(trackSelector);
-                player.prepare(mediaSource, false, false);
                 resultHandler.onDone();
             });
         }
@@ -529,6 +536,28 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 }
             }
         });
+    }
+
+    private MediaSource buildMediaSource(IPlayerImplementationControls.ILoadRequest loadRequest) throws ControlRequestResolutionException {
+        if(loadRequest instanceof IPlayerImplementationControls.IStreamLoadRequest) {
+            IPlayerImplementationControls.IStreamLoadRequest typedLR = (IPlayerImplementationControls.IStreamLoadRequest) loadRequest;
+            return buildMediaSource(Uri.parse(typedLR.getUrl()), new MediaSourceFactoryConfigurator(loadRequest));
+        } else if(loadRequest instanceof IPlayerImplementationControls.IDownloadedLoadRequest) {
+            IPlayerImplementationControls.IDownloadedLoadRequest typedLR = (IPlayerImplementationControls.IDownloadedLoadRequest) loadRequest;
+            Object downloadData = typedLR.getDownloadData();
+            if(!(downloadData instanceof IMediaSourceFactory)) {
+                throw ControlRequestResolutionException.onRejected(new ExoRejectReason(
+                        IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT,
+                        "Unrecognized downloadData"));
+            }
+            IMediaSourceFactory mediaSourceFactory = (IMediaSourceFactory) downloadData;
+
+            return mediaSourceFactory.createMediaSource(new MediaSourceFactoryConfigurator(loadRequest));
+        } else {
+            throw ControlRequestResolutionException.onRejected(new ExoRejectReason(
+                    IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT,
+                    "LoadRequest type not supported by this player implementation"));
+        }
     }
 
     private MediaSource buildMediaSource(Uri uri, MediaSourceFactoryConfigurator configurator) {
