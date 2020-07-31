@@ -17,7 +17,6 @@ import com.google.android.exoplayer2.IllegalSeekPositionException;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
@@ -82,6 +81,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private DefaultTrackSelector trackSelector;
     private PlayerView playerView = null;
     private boolean hideControllerCalled = false;
+    private final EnigmaDrmSessionManager<FrameworkMediaCrypto> drmSessionManager;
     private MediaDrmFromProviderCallback mediaDrmCallback;
     private MediaFormatSpecification supportedFormats = new MediaFormatSpecification();
     private TimelinePositionFormat timestampFormat = TimelinePositionFormat.newFormat(new ExoPlayerDurationFormat(), "HH:mm");
@@ -108,7 +108,6 @@ public class ExoPlayerTech implements IPlayerImplementation {
         DefaultRenderersFactory rendersFactory =
             new DefaultRenderersFactory(context, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
         try {
-            DefaultDrmSessionManager<FrameworkMediaCrypto> drmSessionManager;
             if(supportedFormats.isWidewineSupported()) {
                 this.mediaDrm = new ReusableExoMediaDrm<FrameworkMediaCrypto>(new ReusableExoMediaDrm.ExoMediaDrmFactory<FrameworkMediaCrypto>() {
                     @Override
@@ -116,8 +115,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                         return FrameworkMediaDrm.newInstance(WIDEVINE_UUID);
                     }
                 });
-                //TODO check if mediaDrm needs to be released or if it is released when the player is released.
-                drmSessionManager = new DefaultDrmSessionManager<>(WIDEVINE_UUID, mediaDrm, mediaDrmCallback, null, false);
+                drmSessionManager = new EnigmaDrmSessionManager<>(mediaDrm, mediaDrmCallback);
             } else {
                 this.mediaDrm = null;
                 drmSessionManager = null;
@@ -149,6 +147,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private class Controls implements IPlayerImplementationControls {
         @Override
         public void load(ILoadRequest loadRequest, IPlayerImplementationControlResultHandler resultHandler) {
+            drmSessionManager.reset();
             final LoadRequestParameterApplier parameterApplier = new LoadRequestParameterApplier(loadRequest) {
                 @Override
                 protected void onException(Exception e) {
@@ -551,6 +550,13 @@ public class ExoPlayerTech implements IPlayerImplementation {
                         "Unrecognized downloadData"));
             }
             IMediaSourceFactory mediaSourceFactory = (IMediaSourceFactory) downloadData;
+
+            if(downloadData instanceof IOfflineDrmKeySource) {
+                byte[] drmKeys = ((IOfflineDrmKeySource) downloadData).getDrmKeys();
+                if(drmKeys != null) {
+                    drmSessionManager.useOfflineManager(drmKeys);
+                }
+            }
 
             return mediaSourceFactory.createMediaSource(new MediaSourceFactoryConfigurator(loadRequest));
         } else {
