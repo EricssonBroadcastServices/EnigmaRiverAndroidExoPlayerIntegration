@@ -1,1 +1,1 @@
-r3.1.2-BETA-LogTest-5
+r3.1.2-BETA-LogTest-6
