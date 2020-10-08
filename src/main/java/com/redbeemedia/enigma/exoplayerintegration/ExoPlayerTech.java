@@ -53,6 +53,8 @@ import com.redbeemedia.enigma.core.player.timeline.ITimelinePosition;
 import com.redbeemedia.enigma.core.player.timeline.TimelinePositionFormat;
 import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
+import com.redbeemedia.enigma.core.util.OpenContainer;
+import com.redbeemedia.enigma.core.util.OpenContainerUtil;
 import com.redbeemedia.enigma.core.virtualui.IVirtualButton;
 import com.redbeemedia.enigma.core.virtualui.IVirtualControls;
 import com.redbeemedia.enigma.core.virtualui.IVirtualControlsSettings;
@@ -85,6 +87,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private MediaDrmFromProviderCallback mediaDrmCallback;
     private MediaFormatSpecification supportedFormats = new MediaFormatSpecification();
     private TimelinePositionFormat timestampFormat = TimelinePositionFormat.newFormat(new ExoPlayerDurationFormat(), "HH:mm");
+    private OpenContainer<ExoPlayerListener> exoPlayerListener = new OpenContainer<>(null);
 
     private final IActivation customTimestampViewsAdded = new Activation();
     private final IActivation playerViewControlsReady = new Activation();
@@ -132,7 +135,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
         mediaDrmCallback.setDrmProvider(environment.getDrmProvider());
         environment.setMediaFormatSupportSpec(supportedFormats);
         ITimelinePositionFactory timelinePositionFactory = environment.getTimelinePositionFactory();
-        player.addListener(new ExoPlayerListener(environment.getPlayerImplementationListener()));
+
+        ExoPlayerListener newExoPlayerListener = new ExoPlayerListener(environment.getPlayerImplementationListener());
+        OpenContainerUtil.setValueSynchronized(exoPlayerListener, newExoPlayerListener, null);
+        player.addListener(newExoPlayerListener);
+
         player.addListener(new ExoPlayerTimelineListener(player, environment.getPlayerImplementationListener(), timelinePositionFactory));
         environment.setControls(new Controls());
         environment.setInternals(new Internals(timelinePositionFactory));
@@ -171,6 +178,10 @@ public class ExoPlayerTech implements IPlayerImplementation {
                     }
                     parameterApplier.applyTo(trackSelector);
                     player.prepare(mediaSource, true, true);
+                    ExoPlayerListener listenerSnapshot = OpenContainerUtil.getValueSynchronized(exoPlayerListener);
+                    if(listenerSnapshot != null) {
+                        listenerSnapshot.onLoadingNewMediaSource();
+                    }
                 } catch (Exception e) {
                     resultHandler.onError(new UnexpectedError(e));
                     return;

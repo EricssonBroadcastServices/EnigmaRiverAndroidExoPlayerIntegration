@@ -11,6 +11,7 @@ import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.redbeemedia.enigma.core.player.IPlayerImplementationListener;
 import com.redbeemedia.enigma.core.player.track.IPlayerImplementationTrack;
+import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 import com.redbeemedia.enigma.exoplayerintegration.error.ExoPlayerError;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
@@ -54,6 +55,10 @@ import java.util.List;
             signalLoadedOnReady = true;
         }
         this.lastState = playbackState;
+    }
+
+    public void onLoadingNewMediaSource() {
+        AndroidThreadUtil.runOnUiThread(() -> signalLoadedOnReady = true);
     }
 
     @Override
