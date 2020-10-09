@@ -342,9 +342,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             try {
                 Timeline timeline = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentTimeline());
                 if(timeline.getWindowCount() > 0) {
-                    int currentWindowIndex = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentWindowIndex());
-                    long startMs = TimelineUtil.getStartMs(player, timeline, currentWindowIndex);
-                    return timelinePositionFactory.newPosition(startMs);
+                    return timelinePositionFactory.newPosition(0);
                 } else {
                     return null;
                 }
@@ -356,14 +354,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
         @Override
         public ITimelinePosition getCurrentEndBound() {
             try {
-                Timeline timeline = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentTimeline());
-                if(timeline.getWindowCount() > 0) {
-                    int currentWindowIndex = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getCurrentWindowIndex());
-                    long duration = TimelineUtil.getDurationMs(player, timeline, currentWindowIndex);
-                    return timelinePositionFactory.newPosition(duration);
-                } else {
-                    return null;
-                }
+                long duration = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getDuration());
+                return duration != C.TIME_UNSET ? timelinePositionFactory.newPosition(duration) : null;
             } catch (InterruptedException e) {
                 return null;
             }
