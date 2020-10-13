@@ -16,7 +16,9 @@ import java.util.List;
                 if(active) {
                     runNow = true;
                 } else {
-                    queued.add(runnable);
+                    if(queued != null) {
+                        queued.add(runnable);
+                    }
                 }
             }
         }
@@ -32,19 +34,21 @@ import java.util.List;
         }
         active = true;
         RuntimeException exception = null;
-        for(Runnable runnable : queued) {
-            try {
-                runnable.run();
-            } catch (RuntimeException e) {
-                if(exception == null) {
-                    exception = e;
-                } else {
-                    exception.addSuppressed(e);
+        if(queued != null) {
+            for(Runnable runnable : queued) {
+                try {
+                    runnable.run();
+                } catch (RuntimeException e) {
+                    if(exception == null) {
+                        exception = e;
+                    } else {
+                        exception.addSuppressed(e);
+                    }
                 }
             }
+            queued.clear();
+            queued = null;
         }
-        queued.clear();
-        queued = null;
         if(exception != null) {
             throw exception;
         }
@@ -52,7 +56,10 @@ import java.util.List;
 
     @Override
     public synchronized void destroy() {
-        queued.clear();
-        queued = null;
+        if(queued != null) {
+            queued.clear();
+            queued = null;
+        }
+        destroyed = true;
     }
 }
