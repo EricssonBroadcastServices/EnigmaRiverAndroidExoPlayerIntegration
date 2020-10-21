@@ -319,10 +319,26 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 resultHandler.onDone();
             });
         }
+
+        @Override
+        public void setMaxVideoTrackDimensions(int width, int height, IPlayerImplementationControlResultHandler controlResultHandler) {
+            AndroidThreadUtil.runOnUiThread(() -> {
+                try {
+                    DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
+                    parametersBuilder.setMaxVideoSize(width, height);
+                    trackSelector.setParameters(parametersBuilder.build());
+                    controlResultHandler.onDone();
+                } catch (RuntimeException e){
+                    controlResultHandler.onError(new UnexpectedError(e));
+                    return;
+                }
+            });
+        }
     }
 
     private class Internals implements IPlayerImplementationInternals {
         private ITimelinePositionFactory timelinePositionFactory;
+        private final Timeline.Window reusableWindow = new Timeline.Window();
 
         public Internals(ITimelinePositionFactory timelinePositionFactory) {
             this.timelinePositionFactory = timelinePositionFactory;
@@ -358,6 +374,28 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 return duration != C.TIME_UNSET ? timelinePositionFactory.newPosition(duration) : null;
             } catch (InterruptedException e) {
                 return null;
+            }
+        }
+
+        @Override
+        public ITimelinePosition getLivePosition() {
+            try {
+                return AndroidThreadUtil.getBlockingOnUiThread( () -> {
+                    Timeline timeline = player.getCurrentTimeline();
+                    if(timeline.getWindowCount() > 0) {
+                        int currentWindowIndex = player.getCurrentWindowIndex();
+                        long position;
+                        synchronized (reusableWindow) {
+                            timeline.getWindow(currentWindowIndex, reusableWindow);
+                            position = reusableWindow.getDefaultPositionMs();
+                        }
+                        return position == C.TIME_UNSET ? null : timelinePositionFactory.newPosition(position);
+                    } else {
+                        return null;
+                    }
+                });
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
 
