@@ -1,14 +1,18 @@
 package com.redbeemedia.enigma.exoplayerintegration;
 
+import android.media.MediaCodec;
+
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.drm.KeysExpiredException;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.util.MimeTypes;
+import com.redbeemedia.enigma.core.error.DrmKeysExpiredError;
 import com.redbeemedia.enigma.core.player.IPlayerImplementationListener;
 import com.redbeemedia.enigma.core.player.track.IPlayerImplementationTrack;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
@@ -31,7 +35,33 @@ import java.util.List;
 
     @Override
     public void onPlayerError(ExoPlaybackException error) {
-        listener.onError(new ExoPlayerError(error));
+        if(isKeysExpiredException(error)) {
+            listener.onError(new DrmKeysExpiredError(error));
+        } else {
+            listener.onError(new ExoPlayerError(error));
+        }
+    }
+
+    private boolean isKeysExpiredException(ExoPlaybackException error) {
+        if(error.type == ExoPlaybackException.TYPE_RENDERER) {
+            //Check if KeysExpiredException
+            Throwable exception = error.getRendererException();
+            while(exception != null) {
+                if(exception instanceof KeysExpiredException) {
+                    return true;
+                }
+                exception = exception.getCause();
+            }
+            //Check if MediaCodec.CryptoException
+            exception = error.getRendererException();
+            while(exception != null) {
+                if(exception instanceof MediaCodec.CryptoException) {
+                    return true;
+                }
+                exception = exception.getCause();
+            }
+        }
+        return false;
     }
 
     @Override
