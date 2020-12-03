@@ -425,6 +425,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
         }
 
         supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.HLS, EnigmaMediaFormat.DrmTechnology.NONE));
+        supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.MP3, EnigmaMediaFormat.DrmTechnology.NONE));
         
         return supportedFormats;
     }
