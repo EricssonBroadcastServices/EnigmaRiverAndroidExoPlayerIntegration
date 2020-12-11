@@ -517,7 +517,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
     public void attachView(View view) {
         if (view instanceof PlayerView) {
-            ((PlayerView) view).setPlayer(player);
+            PlayerView.switchTargetView(player, playerView, (PlayerView) view);
             playerView = (PlayerView) view;
             if(hideControllerCalled) {
                 hideControllerOnPlayerView(playerView);
