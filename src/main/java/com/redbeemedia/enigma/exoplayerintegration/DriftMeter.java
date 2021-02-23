@@ -2,6 +2,7 @@ package com.redbeemedia.enigma.exoplayerintegration;
 
 import android.os.Handler;
 import android.os.SystemClock;
+import android.util.Log;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayer;
@@ -140,10 +141,11 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
             public void onCurrentPositionChanged(ITimelinePosition timelinePosition) {
                 long driftMs = DriftMeter.this.getDrift();
                 Duration drift = Duration.millis(driftMs);
-
                 listeners.onDriftUpdated(speed -> {
+                    Log.d("DRIFT UPDATED", "Drift updated with drift (ms): "+ driftMs);
                     if(!exoPlayerReleased && OpenContainerUtil.getValueSynchronized(hasPlaybackSession)) {
                         PlaybackParameters currentPlaybackParameters = player.getPlaybackParameters();
+                        Log.d("DRIFT UPDATED", "Drift speed: " + speed + " pitch: " + currentPlaybackParameters.pitch);
                         player.setPlaybackParameters(new PlaybackParameters(speed, currentPlaybackParameters.pitch, currentPlaybackParameters.skipSilence));
                     }
                 }, drift);
