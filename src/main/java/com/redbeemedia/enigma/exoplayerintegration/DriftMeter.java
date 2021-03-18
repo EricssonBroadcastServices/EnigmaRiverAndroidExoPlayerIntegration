@@ -142,15 +142,8 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
                 long driftMs = DriftMeter.this.getDrift();
                 Duration drift = Duration.millis(driftMs);
                 listeners.onDriftUpdated(speed -> {
-                    if(driftMs > 200) {
-                        Log.d("DRIFT UPDATED", "Drift updated with drift (ms): "+ driftMs);
-                    }
                     if(!exoPlayerReleased && OpenContainerUtil.getValueSynchronized(hasPlaybackSession)) {
                         PlaybackParameters currentPlaybackParameters = player.getPlaybackParameters();
-                        if(driftMs > 200) {
-                            Log.d("DRIFT UPDATED", "Drift speed: " + speed + " pitch: " + currentPlaybackParameters.pitch);
-                        }
-
                         player.setPlaybackParameters(new PlaybackParameters(speed, currentPlaybackParameters.pitch, currentPlaybackParameters.skipSilence));
                     }
                 }, drift);
