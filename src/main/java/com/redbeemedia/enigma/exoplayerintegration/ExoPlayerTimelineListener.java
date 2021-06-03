@@ -19,7 +19,7 @@ public class ExoPlayerTimelineListener implements Player.EventListener {
     }
 
     @Override
-    public void onTimelineChanged(Timeline timeline, Object manifest, int reason) {
+    public void onTimelineChanged(Timeline timeline, int reason) {
         try {
             long duration = AndroidThreadUtil.getBlockingOnUiThread(() -> player.getDuration());
             if (timeline.getWindowCount() == 0 || duration == C.TIME_UNSET) {

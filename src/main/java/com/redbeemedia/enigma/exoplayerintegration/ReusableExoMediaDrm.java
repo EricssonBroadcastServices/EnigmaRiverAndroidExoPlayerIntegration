@@ -4,6 +4,7 @@ import android.media.DeniedByServerException;
 import android.media.MediaCryptoException;
 import android.media.MediaDrmException;
 import android.media.NotProvisionedException;
+import android.os.PersistableBundle;
 
 import com.google.android.exoplayer2.drm.DrmInitData;
 import com.google.android.exoplayer2.drm.ExoMediaCrypto;
@@ -16,25 +17,28 @@ import java.util.Map;
 
 import androidx.annotation.Nullable;
 
-/*package-protected*/ class ReusableExoMediaDrm<T extends ExoMediaCrypto> implements ExoMediaDrm<T> {
-    private final ExoMediaDrmFactory<T> factory;
-    private ExoMediaDrm<T> wrapped;
+/*package-protected*/ class ReusableExoMediaDrm implements ExoMediaDrm {
+    private final ExoMediaDrmFactory factory;
+    private ExoMediaDrm wrapped;
 
-    public ReusableExoMediaDrm(ExoMediaDrmFactory<T> factory) throws UnsupportedDrmException {
+    public ReusableExoMediaDrm(ExoMediaDrmFactory factory) throws UnsupportedDrmException {
         this.factory = factory;
         this.wrapped = factory.create();
     }
 
-
-
     @Override
-    public void setOnEventListener(OnEventListener<? super T> listener) {
+    public void setOnEventListener(OnEventListener listener) {
         wrapped.setOnEventListener(listener);
     }
 
     @Override
-    public void setOnKeyStatusChangeListener(OnKeyStatusChangeListener<? super T> listener) {
+    public void setOnKeyStatusChangeListener(OnKeyStatusChangeListener listener) {
         wrapped.setOnKeyStatusChangeListener(listener);
+    }
+
+    @Override
+    public void setOnExpirationUpdateListener(@Nullable OnExpirationUpdateListener listener) {
+        wrapped.setOnExpirationUpdateListener(listener);
     }
 
     @Override
@@ -73,6 +77,11 @@ import androidx.annotation.Nullable;
     }
 
     @Override
+    public void acquire() {
+        wrapped.acquire();
+    }
+
+    @Override
     public void release() {
         synchronized (this) {
             if(wrapped != null) {
@@ -97,6 +106,12 @@ import androidx.annotation.Nullable;
         wrapped.restoreKeys(sessionId, keySetId);
     }
 
+    @Nullable
+    @Override
+    public PersistableBundle getMetrics() {
+        return null;
+    }
+
     @Override
     public String getPropertyString(String propertyName) {
         return wrapped.getPropertyString(propertyName);
@@ -118,11 +133,16 @@ import androidx.annotation.Nullable;
     }
 
     @Override
-    public T createMediaCrypto(byte[] initData) throws MediaCryptoException {
+    public ExoMediaCrypto createMediaCrypto(byte[] initData) throws MediaCryptoException {
         return wrapped.createMediaCrypto(initData);
     }
 
-    public interface ExoMediaDrmFactory<S extends ExoMediaCrypto> {
-        ExoMediaDrm<S> create() throws UnsupportedDrmException;
+    @Override
+    public Class<? extends ExoMediaCrypto> getExoMediaCryptoType() {
+        return wrapped.getExoMediaCryptoType();
+    }
+
+    public interface ExoMediaDrmFactory {
+        ExoMediaDrm create() throws UnsupportedDrmException;
     }
 }

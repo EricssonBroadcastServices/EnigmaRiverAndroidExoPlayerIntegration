@@ -121,9 +121,6 @@ import java.util.List;
         }
 
         listener.onTracksChanged(tracks);
-        listener.onSubtitleTrackSelectionChanged(getSelected(trackSelections.get(ExoUtil.DEFAULT_TEXT_RENDERER_INDEX), format -> new ExoSubtitleTrack(format.language)));
-        listener.onAudioTrackSelectionChanged(getSelected(trackSelections.get(ExoUtil.DEFAULT_AUDIO_RENDERER_INDEX), format -> new ExoAudioTrack(format.language)));
-        listener.onVideoTrackSelectionChanged(getSelected(trackSelections.get(ExoUtil.DEFAULT_VIDEO_RENDERER_INDEX), format -> new ExoVideoTrack(format)));
     }
 
     private static boolean isTextMimeType(String mimeType) {
@@ -138,17 +135,4 @@ import java.util.List;
         return MimeTypes.getTrackType(mimeType) == C.TRACK_TYPE_VIDEO;
     }
 
-    private static <T> T getSelected(TrackSelection trackSelection, IFormatWrapper<T> wrapper) {
-        if(trackSelection != null) {
-            Format selectedFormat = trackSelection.getSelectedFormat();
-            if (selectedFormat != null) {
-                return wrapper.wrap(selectedFormat);
-            }
-        }
-        return null;
-    }
-
-    private interface IFormatWrapper<T> {
-        T wrap(Format format);
-    }
 }

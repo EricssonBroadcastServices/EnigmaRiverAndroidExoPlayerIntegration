@@ -1,5 +1,6 @@
 package com.redbeemedia.enigma.exoplayerintegration.util;
 
+import com.google.android.exoplayer2.drm.DrmSessionManager;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
@@ -12,9 +13,11 @@ import com.redbeemedia.enigma.core.time.Duration;
  */
 public class MediaSourceFactoryConfigurator {
     private final IPlayerImplementationControls.ILoadRequest loadRequest;
+    private final DrmSessionManager drmSessionManager;
 
-    public MediaSourceFactoryConfigurator(IPlayerImplementationControls.ILoadRequest loadRequest) {
+    public MediaSourceFactoryConfigurator(DrmSessionManager drmSessionManager, IPlayerImplementationControls.ILoadRequest loadRequest) {
         this.loadRequest = loadRequest;
+        this.drmSessionManager = drmSessionManager;
     }
 
     public DashMediaSource.Factory configure(DashMediaSource.Factory factory) {
@@ -24,7 +27,7 @@ public class MediaSourceFactoryConfigurator {
                 factory.setLivePresentationDelayMs(liveDelay.inWholeUnits(Duration.Unit.MILLISECONDS), true);
             }
         });
-        return factory;
+        return factory.setDrmSessionManagerProvider(mediaItem -> drmSessionManager);
     }
 
     public SsMediaSource.Factory configure(SsMediaSource.Factory factory) {
@@ -34,7 +37,7 @@ public class MediaSourceFactoryConfigurator {
                 factory.setLivePresentationDelayMs(liveDelay.inWholeUnits(Duration.Unit.MILLISECONDS));
             }
         });
-        return factory;
+        return factory.setDrmSessionManagerProvider(mediaItem -> drmSessionManager);
     }
 
 
@@ -45,7 +48,7 @@ public class MediaSourceFactoryConfigurator {
                 // Not supported
             }
         });
-        return factory;
+        return factory.setDrmSessionManagerProvider(mediaItem -> drmSessionManager);
     }
 
     public ExtractorMediaSource.Factory configure(ExtractorMediaSource.Factory factory) {

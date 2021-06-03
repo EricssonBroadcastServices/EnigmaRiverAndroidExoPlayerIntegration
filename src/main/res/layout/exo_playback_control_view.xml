@@ -30,27 +30,27 @@
     android:orientation="horizontal">
 
     <com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton
-        android:id="@+id/exo_integration_prev"
+        android:id="@+id/exo_prev"
       style="@style/ExoMediaButton.Previous"/>
 
     <com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton
-        android:id="@+id/exo_integration_rew"
+        android:id="@+id/exo_rew"
       style="@style/ExoMediaButton.Rewind"/>
 
     <com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton
-        android:id="@+id/exo_integration_play"
+        android:id="@+id/exo_play"
       style="@style/ExoMediaButton.Play"/>
 
     <com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton
-        android:id="@+id/exo_integration_pause"
+        android:id="@+id/exo_pause"
       style="@style/ExoMediaButton.Pause"/>
 
     <com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton
-        android:id="@+id/exo_integration_ffwd"
+        android:id="@+id/exo_ffwd"
       style="@style/ExoMediaButton.FastForward"/>
 
     <com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton
-        android:id="@+id/exo_integration_next"
+        android:id="@+id/exo_next"
       style="@style/ExoMediaButton.Next"/>
 
   </LinearLayout>
@@ -62,7 +62,7 @@
     android:gravity="center_vertical"
     android:orientation="horizontal">
 
-    <TextView android:id="@+id/exo_integration_position"
+    <TextView android:id="@+id/exo_position"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:textSize="14sp"
@@ -73,12 +73,12 @@
       android:textColor="#FFBEBEBE"/>
 
     <com.google.android.exoplayer2.ui.DefaultTimeBar
-      android:id="@+id/exo_integration_progress"
+      android:id="@+id/exo_progress"
       android:layout_width="0dp"
       android:layout_weight="1"
       android:layout_height="26dp"/>
 
-    <TextView android:id="@+id/exo_integration_duration"
+    <TextView android:id="@+id/exo_duration"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:textSize="14sp"

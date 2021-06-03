@@ -26,12 +26,7 @@ public class ExoButton extends ImageButton {
     }
 
     public void setVirtualButton(IVirtualButton virtualButton, Handler handler) {
-        setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                virtualButton.click();
-            }
-        });
+        setOnClickListener(v -> virtualButton.click());
         virtualButton.addListener(new BaseVirtualButtonListener() {
             @Override
             public void onStateChanged() {

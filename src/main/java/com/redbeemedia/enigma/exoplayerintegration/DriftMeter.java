@@ -48,7 +48,11 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
         long positionMs;
         synchronized (window) {
             try {
-                Timeline.Window currentWindow = player.getCurrentTimeline().getWindow(player.getCurrentWindowIndex(), window);
+                int windowIndex = player.getCurrentWindowIndex();
+                if (windowIndex >= player.getCurrentTimeline().getWindowCount()) {
+                    return false;
+                }
+                Timeline.Window currentWindow = player.getCurrentTimeline().getWindow(windowIndex, window);
                 if(!currentWindow.isDynamic) {
                     return false;
                 }
@@ -84,6 +88,10 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
         long windowStartTimeMs;
         try {
             synchronized (window) {
+                int windowIndex = player.getCurrentWindowIndex();
+                if (windowIndex >= player.getCurrentTimeline().getWindowCount()) {
+                    return C.TIME_UNSET;
+                }
                 windowStartTimeMs = player.getCurrentTimeline().getWindow(player.getCurrentWindowIndex(), window).windowStartTimeMs;
             }
         } catch (Exception e) {
@@ -144,7 +152,7 @@ import com.redbeemedia.enigma.exoplayerintegration.drift.ISpeedHandler;
                 listeners.onDriftUpdated(speed -> {
                     if(!exoPlayerReleased && OpenContainerUtil.getValueSynchronized(hasPlaybackSession)) {
                         PlaybackParameters currentPlaybackParameters = player.getPlaybackParameters();
-                        player.setPlaybackParameters(new PlaybackParameters(speed, currentPlaybackParameters.pitch, currentPlaybackParameters.skipSilence));
+                        player.setPlaybackParameters(new PlaybackParameters(speed, currentPlaybackParameters.pitch));
                     }
                 }, drift);
             }
