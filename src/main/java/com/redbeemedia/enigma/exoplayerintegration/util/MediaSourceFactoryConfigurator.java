@@ -1,7 +1,7 @@
 package com.redbeemedia.enigma.exoplayerintegration.util;
 
 import com.google.android.exoplayer2.drm.DrmSessionManager;
-import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
@@ -51,7 +51,7 @@ public class MediaSourceFactoryConfigurator {
         return factory.setDrmSessionManagerProvider(mediaItem -> drmSessionManager);
     }
 
-    public ExtractorMediaSource.Factory configure(ExtractorMediaSource.Factory factory) {
+    public ProgressiveMediaSource.Factory configure(ProgressiveMediaSource.Factory factory) {
         configureInternal(new IMediaSourceFactoryAdapter() {
             @Override
             public void setLiveDelay(Duration liveDelay) {

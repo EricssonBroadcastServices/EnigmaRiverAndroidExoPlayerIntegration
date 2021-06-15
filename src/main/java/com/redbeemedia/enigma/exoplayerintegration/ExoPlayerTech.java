@@ -20,9 +20,9 @@ import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
-import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.MediaSourceFactory;
+import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
@@ -661,7 +661,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 internalMediaSourceFactory = new HlsMediaSource.Factory(mediaDataSourceFactory);
                 break;
             case C.TYPE_OTHER:
-                internalMediaSourceFactory = new ExtractorMediaSource.Factory(mediaDataSourceFactory);
+                internalMediaSourceFactory = new ProgressiveMediaSource.Factory(mediaDataSourceFactory);
                 break;
             default:
                 throw new InvalidParameterException("Unsupported type: " + type);
