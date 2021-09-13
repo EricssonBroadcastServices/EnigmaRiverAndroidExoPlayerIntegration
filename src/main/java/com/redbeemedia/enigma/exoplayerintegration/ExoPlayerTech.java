@@ -34,6 +34,7 @@ import com.google.android.exoplayer2.ui.TimeBar;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+import com.redbeemedia.enigma.core.ads.AdIncludedTimeline;
 import com.redbeemedia.enigma.core.audio.IAudioTrack;
 import com.redbeemedia.enigma.core.error.IllegalSeekPositionError;
 import com.redbeemedia.enigma.core.error.UnexpectedError;
@@ -70,6 +71,7 @@ import com.redbeemedia.enigma.exoplayerintegration.util.MediaSourceFactoryConfig
 
 import java.security.InvalidParameterException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -370,7 +372,6 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public ITimelinePosition getCurrentPosition() {
-            if(released) { return timelinePositionFactory.newPosition(0); }
             try {
                 return AndroidThreadUtil.getBlockingOnUiThread(OPERATION_TIMEOUT, () -> timelinePositionFactory.newPosition(player.getCurrentPosition()));
             } catch (TimeoutException e) {
@@ -450,6 +451,16 @@ public class ExoPlayerTech implements IPlayerImplementation {
         if(organs != null) { organs.release(); }
     }
 
+    @Override
+    public void updateTimeBar(long millis) {
+        TimeBar timeBar = playerView.findViewById(R.id.exo_progress);
+        AndroidThreadUtil.runOnUiThread(() -> {
+            if (millis != 0) {
+                timeBar.setPosition(millis);
+            }
+        });
+    }
+
     protected Set<EnigmaMediaFormat> initSupportedFormats(Set<EnigmaMediaFormat> supportedFormats) {
         supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.DASH, EnigmaMediaFormat.DrmTechnology.NONE));
 
@@ -462,7 +473,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.HLS, EnigmaMediaFormat.DrmTechnology.NONE));
         supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.MP3, EnigmaMediaFormat.DrmTechnology.NONE));
-        
+
         return supportedFormats;
     }
 
@@ -506,6 +517,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                     @Override
                     public void onBoundsChanged(ITimelinePosition start, ITimelinePosition end) {
                         setTimestamp(durationView, end);
+                        showAdsMarkerOnTimeline(enigmaPlayer);
                     }
                 }, handler);
             }
@@ -529,6 +541,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             @Override
             public void run() {
                 IVirtualControls virtualControls = VirtualControls.create(enigmaPlayer, createVirtualControlsSettings());
+                enigmaPlayer.setVirtualControls(virtualControls);
 
                 connectButtonIfExists(playerView.findViewById(R.id.exo_ffwd), virtualControls.getFastForward());
                 connectButtonIfExists(playerView.findViewById(R.id.exo_rew), virtualControls.getRewind());
@@ -538,9 +551,23 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 connectButtonIfExists(playerView.findViewById(R.id.exo_prev), virtualControls.getPreviousProgram());
 
                 TimeBar timeBar = playerView.findViewById(R.id.exo_progress);
-                TimeBarUtil.connect(timeBar, enigmaPlayer);
+                TimeBarUtil.connect(timeBar, enigmaPlayer, virtualControls);
             }
         });
+    }
+
+    private void showAdsMarkerOnTimeline(IEnigmaPlayer enigmaPlayer) {
+        AdIncludedTimeline adIncludedTimeline = (AdIncludedTimeline) enigmaPlayer.getTimeline();
+        List<ITimelinePosition> adBreaksPositions = adIncludedTimeline.getAdBreaks();
+        if(adBreaksPositions != null) {
+            long[] adGroupTimesMs = new long[adBreaksPositions.size()];
+            for (int i = 0; i < adBreaksPositions.size(); i++) {
+                ITimelinePosition adTime = adBreaksPositions.get(i);
+                adGroupTimesMs[i] = adTime.getStart();
+            }
+            boolean[] playedAdGroups = new boolean[adGroupTimesMs.length];
+            playerView.setExtraAdGroupMarkers(adGroupTimesMs, playedAdGroups);
+        }
     }
 
     /**

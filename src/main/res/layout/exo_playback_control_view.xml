@@ -55,7 +55,7 @@
 
   </LinearLayout>
 
-  <LinearLayout
+  <LinearLayout android:id="@+id/exo_player_progress_layout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="4dp"
@@ -72,7 +72,7 @@
       android:includeFontPadding="false"
       android:textColor="#FFBEBEBE"/>
 
-    <com.google.android.exoplayer2.ui.DefaultTimeBar
+    <com.redbeemedia.enigma.exoplayerintegration.ui.ExoTimebar
       android:id="@+id/exo_progress"
       android:layout_width="0dp"
       android:layout_weight="1"

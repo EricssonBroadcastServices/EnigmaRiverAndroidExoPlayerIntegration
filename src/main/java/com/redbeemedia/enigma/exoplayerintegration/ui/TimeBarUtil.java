@@ -1,28 +1,39 @@
 package com.redbeemedia.enigma.exoplayerintegration.ui;
 
 import com.google.android.exoplayer2.ui.TimeBar;
+import com.redbeemedia.enigma.core.ads.AdDetector;
+import com.redbeemedia.enigma.core.ads.AdIncludedTimeline;
+import com.redbeemedia.enigma.core.ads.IAdDetector;
 import com.redbeemedia.enigma.core.player.IEnigmaPlayer;
 import com.redbeemedia.enigma.core.player.timeline.BaseTimelineListener;
 import com.redbeemedia.enigma.core.player.timeline.ITimeline;
 import com.redbeemedia.enigma.core.player.timeline.ITimelinePosition;
 import com.redbeemedia.enigma.core.time.Duration;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
+import com.redbeemedia.enigma.core.virtualui.IVirtualControls;
+import com.redbeemedia.enigma.core.virtualui.impl.VirtualControls;
 
 public class TimeBarUtil {
 
-    public static void connect(TimeBar timeBar, IEnigmaPlayer enigmaPlayer) {
-        new TimeBarHelper(timeBar, enigmaPlayer);
+    public static void connect(TimeBar timeBar, IEnigmaPlayer enigmaPlayer, IVirtualControls virtualControls) {
+        new TimeBarHelper(timeBar, enigmaPlayer, virtualControls);
     }
 
     private static class TimeBarHelper {
         private final TimeBar timeBar;
+        private final IVirtualControls iVirtualControls;
         private ITimelinePosition currentStartBound;
         private ITimelinePosition currentEndBound;
         private ITimelinePosition currentPosition;
+        private ITimeline iTimeline;
+        private IEnigmaPlayer enigmaPlayer;
 
-        public TimeBarHelper(TimeBar timeBar, IEnigmaPlayer enigmaPlayer) {
+        public TimeBarHelper(TimeBar timeBar, IEnigmaPlayer enigmaPlayer, IVirtualControls virtualControls) {
             this.timeBar = timeBar;
             ITimeline timeline = enigmaPlayer.getTimeline();
+            this.enigmaPlayer = enigmaPlayer;
+            this.iTimeline = timeline;
+            this.iVirtualControls = virtualControls;
             currentStartBound = timeline.getCurrentStartBound();
             currentEndBound = timeline.getCurrentEndBound();
             currentPosition = timeline.getCurrentPosition();
@@ -74,9 +85,54 @@ public class TimeBarUtil {
 
         private void updateTimeBar() {
             AndroidThreadUtil.runOnUiThread(() -> {
-                timeBar.setDuration(getDurationInMillis());
-                timeBar.setPosition(getPositionInMillis());
+                if (timeBar instanceof ExoTimebar) {
+                    ((ExoTimebar) timeBar).setAllowUpdate(true);
+                }
+                if (getDurationInMillis() != 0) {
+                    timeBar.setDuration(getDurationInMillis());
+                }
+                if (getPositionInMillis() != 0) {
+                    timeBar.setPosition(getPositionInMillis());
+                }
+                if (timeBar instanceof ExoTimebar) {
+                    ((ExoTimebar) timeBar).setAllowUpdate(false);
+                }
             });
+            hideVirtualControlsWhenAdIsBeingPlayed();
+        }
+
+        private void hideVirtualControlsWhenAdIsBeingPlayed() {
+            if (iTimeline instanceof AdIncludedTimeline) {
+                boolean newEnabled = true;
+                // this check if ad is being played or not
+                if (((AdIncludedTimeline) iTimeline).getCurrentAdBreak() != null) {
+                    newEnabled = false;
+                }
+                detectIfAdIsFinishedAndJumpToOriginalScrubPosition(newEnabled);
+                setEnabledVirtualButtonsWhenStateChange(newEnabled);
+            }
+        }
+
+        private void detectIfAdIsFinishedAndJumpToOriginalScrubPosition(boolean newEnabled) {
+            if (!iVirtualControls.getFastForward().isEnabled() && newEnabled) {
+                // at this moment, ad is being finished
+                IAdDetector iadDetector = enigmaPlayer.getAdDetector();
+                AdDetector adDetector = (AdDetector) iadDetector;
+                if (adDetector.getJumpOnOriginalScrubTime() != null) {
+                    enigmaPlayer.getControls().seekTo(adDetector.getJumpOnOriginalScrubTime());
+                    adDetector.setJumpOnOriginalScrubTime(null);
+                }
+            }
+        }
+
+        private void setEnabledVirtualButtonsWhenStateChange(boolean newEnabled) {
+            VirtualControls virtualControls = (VirtualControls) this.iVirtualControls;
+            virtualControls.setEnabled(iVirtualControls.getFastForward(), newEnabled);
+            virtualControls.setEnabled(iVirtualControls.getRewind(), newEnabled);
+            virtualControls.setEnabled(iVirtualControls.getRestart(), newEnabled);
+            virtualControls.setEnabled(iVirtualControls.getNextProgram(), newEnabled);
+            virtualControls.setEnabled(iVirtualControls.getPreviousProgram(), newEnabled);
+            virtualControls.setEnabled(iVirtualControls.getSeekBar(), newEnabled);
         }
 
         private long getDurationInMillis() {
