@@ -4,6 +4,7 @@ import com.google.android.exoplayer2.ui.TimeBar;
 import com.redbeemedia.enigma.core.ads.AdDetector;
 import com.redbeemedia.enigma.core.ads.AdIncludedTimeline;
 import com.redbeemedia.enigma.core.ads.IAdDetector;
+import com.redbeemedia.enigma.core.marker.MarkerPoint;
 import com.redbeemedia.enigma.core.player.IEnigmaPlayer;
 import com.redbeemedia.enigma.core.player.timeline.BaseTimelineListener;
 import com.redbeemedia.enigma.core.player.timeline.ITimeline;
@@ -99,17 +100,39 @@ public class TimeBarUtil {
                 }
             });
             hideVirtualControlsWhenAdIsBeingPlayed();
+            showSkipIntroButtonIfApplicable();
+        }
+
+        /**
+         * For cue-points
+         */
+        private void showSkipIntroButtonIfApplicable() {
+            MarkerPoint currentMarkerPoint = enigmaPlayer.getMarkerPointsDetector().getCurrentMarkerPoint();
+            boolean enabled = false;
+            if (currentMarkerPoint != null && currentMarkerPoint.isIntro()) {
+                enabled = true;
+            }
+            VirtualControls virtualControls = (VirtualControls) this.iVirtualControls;
+            virtualControls.setEnabled(iVirtualControls.getSkipIntro(), enabled);
         }
 
         private void hideVirtualControlsWhenAdIsBeingPlayed() {
-            if (iTimeline instanceof AdIncludedTimeline) {
-                boolean newEnabled = true;
-                // this check if ad is being played or not
-                if (((AdIncludedTimeline) iTimeline).getCurrentAdBreak() != null) {
-                    newEnabled = false;
+            // dont change state of button if live stream
+            if (!enigmaPlayer.isLiveStream()) {
+                if (iTimeline instanceof AdIncludedTimeline) {
+                    boolean newEnabled = true;
+                    // this check if ad is being played or not
+                    if (((AdIncludedTimeline) iTimeline).getCurrentAdBreak() != null) {
+                        newEnabled = false;
+                    }
+                    detectIfAdIsFinishedAndJumpToOriginalScrubPosition(newEnabled);
+                    setEnabledVirtualButtonsWhenStateChange(newEnabled);
                 }
-                detectIfAdIsFinishedAndJumpToOriginalScrubPosition(newEnabled);
-                setEnabledVirtualButtonsWhenStateChange(newEnabled);
+            }else{
+                // if live streams
+                iVirtualControls.getSeekBar().refresh();
+                iVirtualControls.getFastForward().refresh();
+                iVirtualControls.getRewind().refresh();
             }
         }
 

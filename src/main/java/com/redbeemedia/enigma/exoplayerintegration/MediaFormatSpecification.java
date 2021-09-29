@@ -10,6 +10,11 @@ import java.util.Set;
     private final Set<EnigmaMediaFormat> supportedFormats = new HashSet<>();
 
     @Override
+    public Set<EnigmaMediaFormat> getSupportedFormats() {
+        return supportedFormats;
+    }
+
+    @Override
     public boolean supports(EnigmaMediaFormat enigmaMediaFormat) {
         return supportedFormats.contains(enigmaMediaFormat);
     }
