@@ -12,7 +12,7 @@ public class ExoPlayerError extends PlayerImplementationError  {
     private final ExoPlaybackException exoPlaybackException;
 
     public ExoPlayerError(ExoPlaybackException exoPlaybackException) {
-        super(internalCode(exoPlaybackException), INTERNAL_ERROR_CODE_FIELD_NAME);
+        super(internalCode(exoPlaybackException), INTERNAL_ERROR_CODE_FIELD_NAME, exoPlaybackException.getMessage());
         this.exoPlaybackException = exoPlaybackException;
     }
 
