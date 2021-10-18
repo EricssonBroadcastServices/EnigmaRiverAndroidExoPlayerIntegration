@@ -1,6 +1,7 @@
 package com.redbeemedia.enigma.exoplayerintegration.error;
 
 import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.PlaybackException;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -98,16 +99,21 @@ public class InternalExoPlayerErrorCodes {
         lookupTable = Collections.unmodifiableMap(lookupTableBuild);
     }
 
-    public static int getInternalErrorCode(ExoPlaybackException error, int defaultErrorCode) {
-        switch (error.type) {
-            case ExoPlaybackException.TYPE_SOURCE:
-                return getErrorCodeFromName(normalizedName(error.getSourceException()), SOURCE_EXCEPTION_CODE);
-            case ExoPlaybackException.TYPE_RENDERER:
-                return getErrorCodeFromName(normalizedName(error.getRendererException()), RENDERED_EXCEPTION_CODE);
-            case ExoPlaybackException.TYPE_UNEXPECTED:
-                return getErrorCodeFromName(normalizedName(error.getUnexpectedException()), UNEXPECTED_EXCEPTION_CODE);
-            default:
-                return defaultErrorCode;
+    public static int getInternalErrorCode(PlaybackException error, int defaultErrorCode) {
+        if (error instanceof ExoPlaybackException) {
+            ExoPlaybackException exoPlaybackException = (ExoPlaybackException) error;
+            switch (exoPlaybackException.type) {
+                case ExoPlaybackException.TYPE_SOURCE:
+                    return getErrorCodeFromName(normalizedName(exoPlaybackException.getSourceException()), SOURCE_EXCEPTION_CODE);
+                case ExoPlaybackException.TYPE_RENDERER:
+                    return getErrorCodeFromName(normalizedName(exoPlaybackException.getRendererException()), RENDERED_EXCEPTION_CODE);
+                case ExoPlaybackException.TYPE_UNEXPECTED:
+                    return getErrorCodeFromName(normalizedName(exoPlaybackException.getUnexpectedException()), UNEXPECTED_EXCEPTION_CODE);
+                default:
+                    return defaultErrorCode;
+            }
+        } else {
+            return error.errorCode;
         }
     }
 

@@ -5,6 +5,7 @@ import android.media.MediaCodec;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Format;
+import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.drm.KeysExpiredException;
 import com.google.android.exoplayer2.source.TrackGroup;
@@ -24,7 +25,7 @@ import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoVideoTrack;
 import java.util.ArrayList;
 import java.util.List;
 
-/*package-protected*/ class ExoPlayerListener implements Player.EventListener {
+/*package-protected*/ class ExoPlayerListener implements Player.Listener {
     private IPlayerImplementationListener listener;
     private int lastState = Player.STATE_IDLE;
     private boolean signalLoadedOnReady = true;
@@ -34,7 +35,7 @@ import java.util.List;
     }
 
     @Override
-    public void onPlayerError(ExoPlaybackException error) {
+    public void onPlayerError(PlaybackException error) {
         if(isKeysExpiredException(error)) {
             listener.onError(new DrmKeysExpiredError(error));
         } else {
@@ -42,23 +43,26 @@ import java.util.List;
         }
     }
 
-    private boolean isKeysExpiredException(ExoPlaybackException error) {
-        if(error.type == ExoPlaybackException.TYPE_RENDERER) {
-            //Check if KeysExpiredException
-            Throwable exception = error.getRendererException();
-            while(exception != null) {
-                if(exception instanceof KeysExpiredException) {
-                    return true;
+    private boolean isKeysExpiredException(PlaybackException error) {
+        if(error instanceof  ExoPlaybackException) {
+            ExoPlaybackException exoplaybackExcepton  = (ExoPlaybackException) error;
+            if (exoplaybackExcepton.type == ExoPlaybackException.TYPE_RENDERER) {
+                //Check if KeysExpiredException
+                Throwable exception = exoplaybackExcepton.getRendererException();
+                while (exception != null) {
+                    if (exception instanceof KeysExpiredException) {
+                        return true;
+                    }
+                    exception = exception.getCause();
                 }
-                exception = exception.getCause();
-            }
-            //Check if MediaCodec.CryptoException
-            exception = error.getRendererException();
-            while(exception != null) {
-                if(exception instanceof MediaCodec.CryptoException) {
-                    return true;
+                //Check if MediaCodec.CryptoException
+                exception = exoplaybackExcepton.getRendererException();
+                while (exception != null) {
+                    if (exception instanceof MediaCodec.CryptoException) {
+                        return true;
+                    }
+                    exception = exception.getCause();
                 }
-                exception = exception.getCause();
             }
         }
         return false;
