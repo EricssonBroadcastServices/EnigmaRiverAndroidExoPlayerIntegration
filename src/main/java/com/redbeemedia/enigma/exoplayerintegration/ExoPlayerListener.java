@@ -103,14 +103,18 @@ import java.util.List;
             TrackGroup trackGroup = trackGroups.get(i);
             for(int j = 0; j < trackGroup.length; ++j) {
                 Format format = trackGroup.getFormat(j);
+                String label = format.label;
+                if (label == null) {
+                    label = format.language;
+                }
                 if(isTextMimeType(format.containerMimeType) || isTextMimeType(format.sampleMimeType)) {
-                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(format.label);
+                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label);
                     if(!tracks.contains(subtitleTrack)) {
                         tracks.add(subtitleTrack);
                     }
                 }
                 if(isAudioType(format.containerMimeType)) {
-                    ExoAudioTrack audioTrack = new ExoAudioTrack(format.label);
+                    ExoAudioTrack audioTrack = new ExoAudioTrack(label);
                     if(!tracks.contains(audioTrack)) {
                         tracks.add(audioTrack);
                     }
