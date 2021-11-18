@@ -108,13 +108,13 @@ import java.util.List;
                     label = format.language;
                 }
                 if(isTextMimeType(format.containerMimeType) || isTextMimeType(format.sampleMimeType)) {
-                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label);
+                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language);
                     if(!tracks.contains(subtitleTrack)) {
                         tracks.add(subtitleTrack);
                     }
                 }
                 if(isAudioType(format.containerMimeType)) {
-                    ExoAudioTrack audioTrack = new ExoAudioTrack(label);
+                    ExoAudioTrack audioTrack = new ExoAudioTrack(label, format.language);
                     if(!tracks.contains(audioTrack)) {
                         tracks.add(audioTrack);
                     }

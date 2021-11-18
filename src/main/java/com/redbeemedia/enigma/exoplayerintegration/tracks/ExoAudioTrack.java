@@ -7,20 +7,25 @@ import com.redbeemedia.enigma.core.audio.IAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ExoUtil;
 
 public final class ExoAudioTrack extends AbstractExoTrack implements IAudioTrack {
-    public ExoAudioTrack(String language) {
-        super(language);
+    public ExoAudioTrack(String label, String code) {
+        super(label, code);
     }
 
 
     @Override
-    public String getLanguageCode() {
-        return super.getLanguageCode();
+    public String getLabel() {
+        return super.getLabel();
+    }
+
+    @Override
+    public String getCode() {
+        return super.getCode();
     }
 
     @Override
     public void applyTo(DefaultTrackSelector trackSelector) {
         DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
-        parametersBuilder.setPreferredAudioLanguage(getLanguageCode());
+        parametersBuilder.setPreferredAudioLanguage(getLabel());
         parametersBuilder.setRendererDisabled(ExoUtil.DEFAULT_AUDIO_RENDERER_INDEX, false);
         trackSelector.setParameters(parametersBuilder.build());
     }

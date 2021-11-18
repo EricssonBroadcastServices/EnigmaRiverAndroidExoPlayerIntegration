@@ -8,25 +8,31 @@ import com.redbeemedia.enigma.core.player.track.BasePlayerImplementationTrack;
 import java.util.Objects;
 
 /*package-protected*/ abstract class AbstractExoTrack extends BasePlayerImplementationTrack {
-    private final String language;
+    private final String label;
+    private final String code;
 
-    public AbstractExoTrack(String language) {
-        this.language = language;
+    public AbstractExoTrack(String label, String code) {
+        this.label = label;
+        this.code = code;
     }
 
-    protected String getLanguageCode() {
-        return language;
+    protected String getLabel() {
+        return label;
+    }
+
+    public String getCode() {
+        return code;
     }
 
     public abstract void applyTo(DefaultTrackSelector trackSelector);
 
     @Override
     public boolean equals(@Nullable Object obj) {
-        return obj instanceof AbstractExoTrack && Objects.equals(this.language, ((AbstractExoTrack) obj).language);
+        return obj instanceof AbstractExoTrack && Objects.equals(this.label, ((AbstractExoTrack) obj).label);
     }
 
     @Override
     public int hashCode() {
-        return language != null ? language.hashCode() : 0;
+        return label != null ? label.hashCode() : 0;
     }
 }
