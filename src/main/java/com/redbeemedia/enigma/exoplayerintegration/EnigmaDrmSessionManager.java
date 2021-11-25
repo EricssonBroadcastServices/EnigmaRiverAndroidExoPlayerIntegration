@@ -38,7 +38,11 @@ import java.util.UUID;
 
     @Override
     public void prepare() {
-        normalSessionManager.prepare();
+        try {
+            normalSessionManager.prepare();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     @Override
