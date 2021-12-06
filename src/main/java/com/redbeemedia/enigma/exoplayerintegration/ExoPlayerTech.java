@@ -558,7 +558,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
     private void showAdsMarkerOnTimeline(IEnigmaPlayer enigmaPlayer) {
         AdIncludedTimeline adIncludedTimeline = (AdIncludedTimeline) enigmaPlayer.getTimeline();
-        List<ITimelinePosition> adBreaksPositions = adIncludedTimeline.getAdBreaks();
+        List<ITimelinePosition> adBreaksPositions = adIncludedTimeline.getAdBreaksPositions();
         if(adBreaksPositions != null) {
             long[] adGroupTimesMs = new long[adBreaksPositions.size()];
             for (int i = 0; i < adBreaksPositions.size(); i++) {
