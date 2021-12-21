@@ -53,6 +53,7 @@ import com.redbeemedia.enigma.core.player.timeline.ITimeline;
 import com.redbeemedia.enigma.core.player.timeline.ITimelinePosition;
 import com.redbeemedia.enigma.core.player.timeline.TimelinePositionFormat;
 import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
+import com.redbeemedia.enigma.core.time.Duration;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 import com.redbeemedia.enigma.core.util.OpenContainer;
 import com.redbeemedia.enigma.core.util.OpenContainerUtil;
@@ -98,6 +99,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private TextView positionView;
     private TextView durationView;
     private boolean released;
+    private Duration liveDelay;
     private Internals organs;
 
     private DriftMeter driftMeter;
@@ -166,6 +168,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
         @Override
         public void load(ILoadRequest loadRequest, IPlayerImplementationControlResultHandler resultHandler) {
             drmSessionManager.reset();
+            liveDelay = loadRequest.getLiveDelay();
             final LoadRequestParameterApplier parameterApplier = new LoadRequestParameterApplier(loadRequest) {
                 @Override
                 protected void onException(Exception e) {
@@ -402,7 +405,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
             if(released) { return null; }
             try {
                 long duration = AndroidThreadUtil.getBlockingOnUiThread(OPERATION_TIMEOUT, () -> player.getDuration());
-                return duration != C.TIME_UNSET ? timelinePositionFactory.newPosition(duration) : null;
+                ITimelinePosition iTimelinePosition = duration != C.TIME_UNSET ? timelinePositionFactory.newPosition(duration) : null;
+                if (iTimelinePosition != null && liveDelay != null) {
+                    iTimelinePosition = iTimelinePosition.subtract(liveDelay);
+                }
+                return iTimelinePosition;
             } catch (InterruptedException | TimeoutException e) {
                 return null;
             }
@@ -646,7 +653,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private MediaSource buildMediaSource(IPlayerImplementationControls.ILoadRequest loadRequest) throws ControlRequestResolutionException {
         if(loadRequest instanceof IPlayerImplementationControls.IStreamLoadRequest) {
             IPlayerImplementationControls.IStreamLoadRequest typedLR = (IPlayerImplementationControls.IStreamLoadRequest) loadRequest;
-            return buildMediaSource(Uri.parse(typedLR.getUrl()));
+            return buildMediaSource(Uri.parse(typedLR.getUrl()),loadRequest);
         } else if(loadRequest instanceof IPlayerImplementationControls.IDownloadedLoadRequest) {
             IPlayerImplementationControls.IDownloadedLoadRequest typedLR = (IPlayerImplementationControls.IDownloadedLoadRequest)loadRequest;
             Object downloadData = typedLR.getDownloadData();
@@ -672,9 +679,14 @@ public class ExoPlayerTech implements IPlayerImplementation {
         }
     }
 
-    private MediaSource buildMediaSource(Uri uri) {
+    private MediaSource buildMediaSource(Uri uri, IPlayerImplementationControls.ILoadRequest loadRequest) {
         @C.ContentType int type = Util.inferContentType(uri);
         MediaItem.Builder builder = new MediaItem.Builder().setUri(uri);
+        if(loadRequest.getLiveDelay() != null) {
+            builder.setLiveTargetOffsetMs(loadRequest.getLiveDelay().inWholeUnits(Duration.Unit.MILLISECONDS));
+            builder.setLiveMinOffsetMs(loadRequest.getLiveDelay().inWholeUnits(Duration.Unit.MILLISECONDS));
+            builder.setLiveMaxOffsetMs(loadRequest.getLiveDelay().inWholeUnits(Duration.Unit.MILLISECONDS));
+        }
 
         MediaSourceFactory internalMediaSourceFactory = null;
         switch (type) {
