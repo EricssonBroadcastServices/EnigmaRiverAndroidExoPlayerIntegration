@@ -32,7 +32,7 @@ dependencies {
     if(findProject(':core') != null) {
         implementation project(":core")
     } else {
-        implementation "com.github.EricssonBroadcastServices.EnigmaRiverAndroid:core:r3.3.4-BETA-2"
+        implementation "com.github.EricssonBroadcastServices.EnigmaRiverAndroid:core:r3.4.0-BETA-4"
     }
 
     api 'com.google.android.exoplayer:exoplayer:2.15.1'
