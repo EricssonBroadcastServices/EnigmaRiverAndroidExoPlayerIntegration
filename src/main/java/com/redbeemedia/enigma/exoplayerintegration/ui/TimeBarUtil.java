@@ -2,8 +2,10 @@ package com.redbeemedia.enigma.exoplayerintegration.ui;
 
 import com.google.android.exoplayer2.ui.TimeBar;
 import com.redbeemedia.enigma.core.ads.AdDetector;
+import com.redbeemedia.enigma.core.ads.AdEventType;
 import com.redbeemedia.enigma.core.ads.AdIncludedTimeline;
 import com.redbeemedia.enigma.core.ads.IAdDetector;
+import com.redbeemedia.enigma.core.ads.VastAdEntry;
 import com.redbeemedia.enigma.core.marker.MarkerPoint;
 import com.redbeemedia.enigma.core.player.IEnigmaPlayer;
 import com.redbeemedia.enigma.core.player.timeline.BaseTimelineListener;
@@ -51,6 +53,11 @@ public class TimeBarUtil {
                     currentStartBound = start;
                     currentEndBound = end;
                     updateTimeBar();
+                }
+
+                @Override
+                public void onAdEvent(VastAdEntry entry, AdEventType eventType) {
+                    iVirtualControls.getVideoAdClickButton().refresh();
                 }
 
                 @Override
