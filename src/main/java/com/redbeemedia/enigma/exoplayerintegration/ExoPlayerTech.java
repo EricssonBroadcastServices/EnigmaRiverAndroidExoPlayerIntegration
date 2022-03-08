@@ -12,10 +12,10 @@ import android.widget.TextView;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
+import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.IllegalSeekPositionException;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
@@ -85,7 +85,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final DataSource.Factory mediaDataSourceFactory;
     private final ReusableExoMediaDrm mediaDrm;
-    private SimpleExoPlayer player;
+    private ExoPlayer player;
     private DefaultTrackSelector trackSelector;
     private PlayerView playerView = null;
     private boolean hideControllerCalled = false;
@@ -117,7 +117,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             supportedFormats.add(format);
         }
 
-        this.trackSelector = new DefaultTrackSelector(new AdaptiveTrackSelection.Factory());
+        this.trackSelector = new DefaultTrackSelector(context, new AdaptiveTrackSelection.Factory());
 
         DefaultRenderersFactory rendersFactory =
             new DefaultRenderersFactory(context);
@@ -132,9 +132,10 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 drmSessionManager = null;
             }
 
-            this.player = new SimpleExoPlayer.Builder(context, rendersFactory)
+            this.player = new ExoPlayer.Builder(context, rendersFactory)
                     .setTrackSelector(trackSelector)
                     .setMediaSourceFactory(mediaSourceFactory)
+                    .setRenderersFactory(new EnigmaRendererFactory(context))
                     .build();//ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager);
 
             this.driftMeter = new DriftMeter(player, handler);
@@ -267,7 +268,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 long millis = ((TimelineRelativePosition) seekPosition).getMillis();
                 AndroidThreadUtil.runOnUiThread(() -> {
                     player.seekTo(millis);
-                    player.addListener(new Player.EventListener() {
+                    player.addListener(new Player.Listener() {
                         @Override
                         public void onSeekProcessed() {
                             player.removeListener(this);
@@ -428,7 +429,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 return AndroidThreadUtil.getBlockingOnUiThread(OPERATION_TIMEOUT, () -> {
                     Timeline timeline = player.getCurrentTimeline();
                     if(timeline.getWindowCount() > 0) {
-                        int currentWindowIndex = player.getCurrentWindowIndex();
+                        int currentWindowIndex = player.getCurrentMediaItemIndex();
                         long position;
                         synchronized (reusableWindow) {
                             timeline.getWindow(currentWindowIndex, reusableWindow);
@@ -688,10 +689,13 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private MediaSource buildMediaSource(Uri uri, IPlayerImplementationControls.ILoadRequest loadRequest) {
         @C.ContentType int type = Util.inferContentType(uri);
         MediaItem.Builder builder = new MediaItem.Builder().setUri(uri);
-        if(loadRequest.getLiveDelay() != null) {
-            builder.setLiveTargetOffsetMs(loadRequest.getLiveDelay().inWholeUnits(Duration.Unit.MILLISECONDS));
-            builder.setLiveMinOffsetMs(loadRequest.getLiveDelay().inWholeUnits(Duration.Unit.MILLISECONDS));
-            builder.setLiveMaxOffsetMs(loadRequest.getLiveDelay().inWholeUnits(Duration.Unit.MILLISECONDS));
+        Duration liveDelay = loadRequest.getLiveDelay();
+        if (liveDelay != null) {
+            MediaItem.LiveConfiguration.Builder liveConfigurationBuilder = new MediaItem.LiveConfiguration.Builder();
+            liveConfigurationBuilder.setTargetOffsetMs(liveDelay.inWholeUnits(Duration.Unit.MILLISECONDS));
+            liveConfigurationBuilder.setMaxOffsetMs(liveDelay.inWholeUnits(Duration.Unit.MILLISECONDS));
+            liveConfigurationBuilder.setMinOffsetMs(liveDelay.inWholeUnits(Duration.Unit.MILLISECONDS));
+            builder.setLiveConfiguration(liveConfigurationBuilder.build());
         }
 
         MediaSourceFactory internalMediaSourceFactory = null;

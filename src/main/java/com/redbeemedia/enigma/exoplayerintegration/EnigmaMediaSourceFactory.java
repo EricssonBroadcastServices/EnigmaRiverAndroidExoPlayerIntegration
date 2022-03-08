@@ -12,40 +12,22 @@ import com.google.android.exoplayer2.source.MediaSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.upstream.LoadErrorHandlingPolicy;
 
-public class EnigmaMediaSourceFactory implements MediaSourceFactory {
+public class EnigmaMediaSourceFactory implements MediaSource.Factory {
 
-    private MediaSourceFactory internalFactory;
+    private MediaSource.Factory internalFactory;
 
-    public MediaSourceFactory setInternalFactory(MediaSourceFactory internalFactory) {
+    public MediaSource.Factory setInternalFactory(MediaSourceFactory internalFactory) {
         this.internalFactory = internalFactory;
         return this;
     }
 
     @Override
-    public MediaSourceFactory setDrmSessionManagerProvider(@Nullable DrmSessionManagerProvider drmSessionManagerProvider) {
+    public MediaSource.Factory setDrmSessionManagerProvider(@Nullable DrmSessionManagerProvider drmSessionManagerProvider) {
         return internalFactory.setDrmSessionManagerProvider(drmSessionManagerProvider);
     }
 
     @Override
-    @Deprecated
-    public MediaSourceFactory setDrmSessionManager(@Nullable DrmSessionManager drmSessionManager) {
-        return internalFactory.setDrmSessionManager(drmSessionManager);
-    }
-
-    @Override
-    @Deprecated
-    public MediaSourceFactory setDrmHttpDataSourceFactory(@Nullable HttpDataSource.Factory drmHttpDataSourceFactory) {
-        return internalFactory.setDrmHttpDataSourceFactory(drmHttpDataSourceFactory);
-    }
-
-    @Override
-    @Deprecated
-    public MediaSourceFactory setDrmUserAgent(@Nullable String userAgent) {
-        return internalFactory.setDrmUserAgent(userAgent);
-    }
-
-    @Override
-    public MediaSourceFactory setLoadErrorHandlingPolicy(@Nullable LoadErrorHandlingPolicy loadErrorHandlingPolicy) {
+    public MediaSource.Factory setLoadErrorHandlingPolicy(@Nullable LoadErrorHandlingPolicy loadErrorHandlingPolicy) {
         return internalFactory.setLoadErrorHandlingPolicy(loadErrorHandlingPolicy);
     }
 

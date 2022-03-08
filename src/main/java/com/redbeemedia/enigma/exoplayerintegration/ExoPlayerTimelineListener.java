@@ -14,7 +14,7 @@ import com.redbeemedia.enigma.core.player.IPlayerImplementationListener;
 import com.redbeemedia.enigma.core.player.ITimelinePositionFactory;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 
-public class ExoPlayerTimelineListener implements Player.EventListener {
+public class ExoPlayerTimelineListener implements Player.Listener {
     private Player player;
     private IPlayerImplementationListener listener;
     private ITimelinePositionFactory timelinePositionFactory;

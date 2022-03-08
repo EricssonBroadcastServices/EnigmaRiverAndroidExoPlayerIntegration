@@ -25,7 +25,6 @@ public class MediaSourceFactoryConfigurator {
         configureInternal(new IMediaSourceFactoryAdapter() {
             @Override
             public void setLiveDelay(Duration liveDelay) {
-                factory.setLivePresentationDelayMs(liveDelay.inWholeUnits(Duration.Unit.MILLISECONDS), true);
                 factory.setFallbackTargetLiveOffsetMs(liveDelay.inWholeUnits(Duration.Unit.MILLISECONDS));
             }
         });

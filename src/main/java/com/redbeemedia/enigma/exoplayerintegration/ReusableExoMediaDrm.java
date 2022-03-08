@@ -5,9 +5,8 @@ import android.media.MediaCryptoException;
 import android.media.MediaDrmException;
 import android.media.NotProvisionedException;
 import android.os.PersistableBundle;
-
+import com.google.android.exoplayer2.decoder.CryptoConfig;
 import com.google.android.exoplayer2.drm.DrmInitData;
-import com.google.android.exoplayer2.drm.ExoMediaCrypto;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
 
@@ -77,6 +76,11 @@ import androidx.annotation.Nullable;
     }
 
     @Override
+    public boolean requiresSecureDecoder(byte[] sessionId, String mimeType) {
+        return wrapped.requiresSecureDecoder(sessionId,mimeType);
+    }
+
+    @Override
     public void acquire() {
         wrapped.acquire();
     }
@@ -133,13 +137,13 @@ import androidx.annotation.Nullable;
     }
 
     @Override
-    public ExoMediaCrypto createMediaCrypto(byte[] initData) throws MediaCryptoException {
-        return wrapped.createMediaCrypto(initData);
+    public CryptoConfig createCryptoConfig(byte[] sessionId) throws MediaCryptoException {
+        return wrapped.createCryptoConfig(sessionId);
     }
 
     @Override
-    public Class<? extends ExoMediaCrypto> getExoMediaCryptoType() {
-        return wrapped.getExoMediaCryptoType();
+    public int getCryptoType() {
+        return wrapped.getCryptoType();
     }
 
     public interface ExoMediaDrmFactory {
