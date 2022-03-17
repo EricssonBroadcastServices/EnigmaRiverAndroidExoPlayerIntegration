@@ -11,6 +11,7 @@ import com.google.android.exoplayer2.drm.KeysExpiredException;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
+import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.util.MimeTypes;
@@ -131,12 +132,18 @@ import java.util.List;
 
         // push event for video track
         for (TrackSelection trackSelection : trackSelections.getAll()) {
-            if (trackSelection instanceof AdaptiveTrackSelection) {
-                int selectedIndex = ((AdaptiveTrackSelection) trackSelection).getSelectedIndex();
+            if (trackSelection instanceof FixedTrackSelection) {
+                int selectedIndex = ((FixedTrackSelection) trackSelection).getSelectedIndex();
                 Format format = trackSelection.getFormat(selectedIndex);
                 if (isVideoType(format.containerMimeType) || isVideoType(format.sampleMimeType)) {
                     listener.onVideoTrackSelectionChanged(new ExoVideoTrack(format));
                     break;
+                }
+            } else if (trackSelection instanceof AdaptiveTrackSelection) {
+                int selectedIndex = ((AdaptiveTrackSelection) trackSelection).getSelectedIndex();
+                Format format = trackSelection.getFormat(selectedIndex);
+                if (isVideoType(format.containerMimeType) || isVideoType(format.sampleMimeType)) {
+                    listener.onVideoTrackSelectionChanged(new ExoVideoTrack(format));
                 }
             }
         }

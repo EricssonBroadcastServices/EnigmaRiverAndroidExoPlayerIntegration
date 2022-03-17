@@ -3,12 +3,12 @@ package com.redbeemedia.enigma.exoplayerintegration.tracks;
 import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.Format;
-import com.redbeemedia.enigma.core.player.track.BasePlayerImplementationTrack;
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.redbeemedia.enigma.core.video.IVideoTrack;
 
 import java.util.Arrays;
 
-public class ExoVideoTrack extends BasePlayerImplementationTrack implements IVideoTrack {
+public class ExoVideoTrack extends AbstractExoTrack implements IVideoTrack {
     private final int bitrateInBytesPerSecond;
     private final int width;
     private final int height;
@@ -45,6 +45,16 @@ public class ExoVideoTrack extends BasePlayerImplementationTrack implements IVid
     @Override
     public int hashCode() {
         return Arrays.hashCode(new Object[]{bitrateInBytesPerSecond, width, height});
+    }
+
+    @Override
+    public void applyTo(DefaultTrackSelector trackSelector) {
+        DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
+        parametersBuilder.setMinVideoBitrate(bitrateInBytesPerSecond);
+        parametersBuilder.setMaxVideoBitrate(bitrateInBytesPerSecond);
+        parametersBuilder.setForceLowestBitrate(true);
+        parametersBuilder.setForceHighestSupportedBitrate(true);
+        trackSelector.setParameters(parametersBuilder.build());
     }
 
     @Override

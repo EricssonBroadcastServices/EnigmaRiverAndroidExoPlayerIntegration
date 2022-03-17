@@ -16,6 +16,11 @@ import java.util.Objects;
         this.code = code;
     }
 
+    public AbstractExoTrack(){
+        this.code = null;
+        this.label = null;
+    }
+
     protected String getLabel() {
         return label;
     }

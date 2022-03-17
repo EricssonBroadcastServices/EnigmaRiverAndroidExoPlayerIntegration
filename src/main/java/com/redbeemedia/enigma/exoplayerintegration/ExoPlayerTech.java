@@ -1,5 +1,7 @@
 package com.redbeemedia.enigma.exoplayerintegration;
 
+import static com.google.android.exoplayer2.drm.DefaultDrmSessionManager.MODE_DOWNLOAD;
+
 import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
@@ -17,6 +19,7 @@ import com.google.android.exoplayer2.IllegalSeekPositionException;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
@@ -58,6 +61,7 @@ import com.redbeemedia.enigma.core.time.Duration;
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 import com.redbeemedia.enigma.core.util.OpenContainer;
 import com.redbeemedia.enigma.core.util.OpenContainerUtil;
+import com.redbeemedia.enigma.core.video.IVideoTrack;
 import com.redbeemedia.enigma.core.virtualui.IVirtualButton;
 import com.redbeemedia.enigma.core.virtualui.IVirtualControls;
 import com.redbeemedia.enigma.core.virtualui.IVirtualControlsSettings;
@@ -66,6 +70,7 @@ import com.redbeemedia.enigma.core.virtualui.impl.VirtualControls;
 import com.redbeemedia.enigma.exoplayerintegration.drift.IDriftListener;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoSubtitleTrack;
+import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoVideoTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton;
 import com.redbeemedia.enigma.exoplayerintegration.ui.TimeBarUtil;
 import com.redbeemedia.enigma.exoplayerintegration.util.LoadRequestParameterApplier;
@@ -89,7 +94,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private DefaultTrackSelector trackSelector;
     private PlayerView playerView = null;
     private boolean hideControllerCalled = false;
-    private final EnigmaDrmSessionManager drmSessionManager;
+    private final DefaultDrmSessionManager drmSessionManager;
     private MediaDrmFromProviderCallback mediaDrmCallback;
     private MediaFormatSpecification supportedFormats = new MediaFormatSpecification();
     private TimelinePositionFormat timestampFormat = TimelinePositionFormat.newFormat(new ExoPlayerDurationFormat(), "HH:mm");
@@ -126,7 +131,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
             if(supportedFormats.isWidewineSupported()) {
                 ExoMediaDrm drm = FrameworkMediaDrm.newInstance(WIDEVINE_UUID);
                 this.mediaDrm = new ReusableExoMediaDrm(() -> drm);
-                drmSessionManager = new EnigmaDrmSessionManager(new ExoMediaDrm.AppManagedProvider(this.mediaDrm), mediaDrmCallback, this.mediaDrm);
+                DefaultDrmSessionManager.Builder builder = new DefaultDrmSessionManager.Builder();
+                ExoMediaDrm.AppManagedProvider appManagedProvider = new ExoMediaDrm.AppManagedProvider(this.mediaDrm);
+                builder.setUuidAndExoMediaDrmProvider(WIDEVINE_UUID,appManagedProvider);
+                drmSessionManager = builder.build(mediaDrmCallback);
+                //drmSessionManager = new DefaultDrmSessionManager(WIDEVINE_UUID,this.mediaDrm, mediaDrmCallback, new HashMap<>());
             } else {
                 this.mediaDrm = null;
                 drmSessionManager = null;
@@ -174,7 +183,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private class Controls implements IPlayerImplementationControls {
         @Override
         public void load(ILoadRequest loadRequest, IPlayerImplementationControlResultHandler resultHandler) {
-            drmSessionManager.reset();
+
             liveDelay = loadRequest.getLiveDelay();
             final LoadRequestParameterApplier parameterApplier = new LoadRequestParameterApplier(loadRequest) {
                 @Override
@@ -350,12 +359,40 @@ public class ExoPlayerTech implements IPlayerImplementation {
         }
 
         @Override
+        public void setVideoTrack(IVideoTrack track, final IPlayerImplementationControlResultHandler resultHandler) {
+            if(released) { return; }
+            if(track != null && !(track instanceof ExoVideoTrack)) {
+                resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, IAudioTrack.class.getSimpleName()+" must originate from ExoPlayer-integration"));
+                return;
+            }
+            final ExoVideoTrack exoVideoTrack = (ExoVideoTrack) track;
+            AndroidThreadUtil.runOnUiThread(() -> {
+                try {
+                    if(exoVideoTrack != null) {
+                        exoVideoTrack.applyTo(trackSelector);
+                    } else {
+                        resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, "track was null"));
+                        return;
+                    }
+                } catch (RuntimeException e) {
+                    resultHandler.onError(new UnexpectedError(e));
+                    return;
+                }
+                resultHandler.onDone();
+            });
+        }
+
+        @Override
         public void setMaxVideoTrackDimensions(int width, int height, IPlayerImplementationControlResultHandler controlResultHandler) {
             if(released) { return; }
             AndroidThreadUtil.runOnUiThread(() -> {
                 try {
                     DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
                     parametersBuilder.setMaxVideoSize(width, height);
+                    parametersBuilder.setForceHighestSupportedBitrate(false);
+                    parametersBuilder.setForceLowestBitrate(false);
+                    parametersBuilder.setMinVideoBitrate(0);
+                    parametersBuilder.setMaxVideoBitrate(Integer.MAX_VALUE);
                     trackSelector.setParameters(parametersBuilder.build());
                     controlResultHandler.onDone();
                 } catch (RuntimeException e){
@@ -674,7 +711,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
             if(downloadData instanceof IOfflineDrmKeySource) {
                 byte[] drmKeys = ((IOfflineDrmKeySource)downloadData).getDrmKeys();
                 if(drmKeys != null) {
-                    drmSessionManager.useOfflineManager(drmKeys);
+                    drmSessionManager.setMode(MODE_DOWNLOAD,drmKeys);
+                    drmSessionManager.prepare();
                 }
             }
 
