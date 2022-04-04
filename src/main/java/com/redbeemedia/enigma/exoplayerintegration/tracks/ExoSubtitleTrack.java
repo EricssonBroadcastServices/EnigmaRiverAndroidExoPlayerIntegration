@@ -7,8 +7,13 @@ import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ExoUtil;
 
 public final class ExoSubtitleTrack extends AbstractExoTrack implements ISubtitleTrack {
+    @Deprecated
     public ExoSubtitleTrack(String label,String code) {
         super(label,code);
+    }
+
+    public ExoSubtitleTrack(String label,String code,String id) {
+        super(label,code, id);
     }
 
 

@@ -7,10 +7,14 @@ import com.redbeemedia.enigma.core.audio.IAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ExoUtil;
 
 public final class ExoAudioTrack extends AbstractExoTrack implements IAudioTrack {
-    public ExoAudioTrack(String label, String code) {
-        super(label, code);
+    public ExoAudioTrack(String label, String code, String id) {
+        super(label, code, id);
     }
 
+    @Deprecated
+    public ExoAudioTrack(String label, String code) {
+        super(label, code, null);
+    }
 
     @Override
     public String getLabel() {

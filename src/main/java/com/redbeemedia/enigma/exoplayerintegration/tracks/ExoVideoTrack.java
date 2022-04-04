@@ -13,7 +13,8 @@ public class ExoVideoTrack extends AbstractExoTrack implements IVideoTrack {
     private final int width;
     private final int height;
 
-    public ExoVideoTrack(Format format) {
+    public ExoVideoTrack(Format format, String id) {
+        super(id);
         this.bitrateInBytesPerSecond = convertInt(format.bitrate);
         this.width = convertInt(format.width);
         this.height = convertInt(format.height);

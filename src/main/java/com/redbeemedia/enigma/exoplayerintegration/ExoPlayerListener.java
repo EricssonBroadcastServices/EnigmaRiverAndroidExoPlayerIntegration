@@ -100,7 +100,6 @@ import java.util.List;
     @Override
     public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
         List<IPlayerImplementationTrack> tracks = new ArrayList<>();
-
         for(int i = 0; i < trackGroups.length; ++i) {
             TrackGroup trackGroup = trackGroups.get(i);
             for(int j = 0; j < trackGroup.length; ++j) {
@@ -110,19 +109,19 @@ import java.util.List;
                     label = format.language;
                 }
                 if(isTextMimeType(format.containerMimeType) || isTextMimeType(format.sampleMimeType)) {
-                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language);
+                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language, format.id);
                     if(!tracks.contains(subtitleTrack)) {
                         tracks.add(subtitleTrack);
                     }
                 }
                 if(isAudioType(format.containerMimeType)) {
-                    ExoAudioTrack audioTrack = new ExoAudioTrack(label, format.language);
+                    ExoAudioTrack audioTrack = new ExoAudioTrack(label, format.language, format.id);
                     if(!tracks.contains(audioTrack)) {
                         tracks.add(audioTrack);
                     }
                 }
                 if(isVideoType(format.containerMimeType) || isVideoType(format.sampleMimeType)) {
-                    ExoVideoTrack videoTrack = new ExoVideoTrack(format);
+                    ExoVideoTrack videoTrack = new ExoVideoTrack(format, format.id);
                     if(!tracks.contains(videoTrack)) {
                         tracks.add(videoTrack);
                     }
@@ -136,14 +135,14 @@ import java.util.List;
                 int selectedIndex = ((FixedTrackSelection) trackSelection).getSelectedIndex();
                 Format format = trackSelection.getFormat(selectedIndex);
                 if (isVideoType(format.containerMimeType) || isVideoType(format.sampleMimeType)) {
-                    listener.onVideoTrackSelectionChanged(new ExoVideoTrack(format));
+                    listener.onVideoTrackSelectionChanged(new ExoVideoTrack(format, format.id));
                     break;
                 }
             } else if (trackSelection instanceof AdaptiveTrackSelection) {
                 int selectedIndex = ((AdaptiveTrackSelection) trackSelection).getSelectedIndex();
                 Format format = trackSelection.getFormat(selectedIndex);
                 if (isVideoType(format.containerMimeType) || isVideoType(format.sampleMimeType)) {
-                    listener.onVideoTrackSelectionChanged(new ExoVideoTrack(format));
+                    listener.onVideoTrackSelectionChanged(new ExoVideoTrack(format, format.id));
                 }
             }
         }

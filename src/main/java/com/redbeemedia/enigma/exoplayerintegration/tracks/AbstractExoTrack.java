@@ -10,15 +10,24 @@ import java.util.Objects;
 /*package-protected*/ abstract class AbstractExoTrack extends BasePlayerImplementationTrack {
     private final String label;
     private final String code;
+    protected final String trackId;
 
     public AbstractExoTrack(String label, String code) {
         this.label = label;
         this.code = code;
+        this.trackId = null;
     }
 
-    public AbstractExoTrack(){
+    public AbstractExoTrack(String label, String code, String id) {
+        this.label = label;
+        this.code = code;
+        this.trackId = id;
+    }
+
+    public AbstractExoTrack(String id){
         this.code = null;
         this.label = null;
+        this.trackId = id;
     }
 
     protected String getLabel() {
@@ -39,5 +48,9 @@ import java.util.Objects;
     @Override
     public int hashCode() {
         return label != null ? label.hashCode() : 0;
+    }
+
+    public String getTrackId() {
+        return trackId;
     }
 }
