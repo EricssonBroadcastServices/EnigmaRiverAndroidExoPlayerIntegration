@@ -34,6 +34,7 @@ import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.google.android.exoplayer2.ui.PlayerView;
+import com.google.android.exoplayer2.ui.SubtitleView;
 import com.google.android.exoplayer2.ui.TimeBar;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
@@ -510,6 +511,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 timeBar.setPosition(millis);
             }
         });
+    }
+
+    @Override
+    public SubtitleView getPlayerSubtitleView() {
+        return playerView.getSubtitleView();
     }
 
     protected Set<EnigmaMediaFormat> initSupportedFormats(Set<EnigmaMediaFormat> supportedFormats) {
