@@ -18,6 +18,7 @@ import com.google.android.exoplayer2.video.MediaCodecVideoRenderer;
 import com.google.android.exoplayer2.video.VideoRendererEventListener;
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
@@ -59,12 +60,14 @@ public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
         // Assume encrypted content requires secure decoders.
         boolean requiresSecureDecryption = drmInitData != null;
         // Done by us, because secure awesome decoder has issue on MiBox4
-        boolean requiresSecureDecoder = false;
+        boolean requiresSecureDecoder = true;
         List<MediaCodecInfo> decoderInfos =
                 getDecoderInfos(
                         mediaCodecSelector,
                         format,
-                        requiresSecureDecoder, false);
+                        requiresSecureDecoder,
+                        false,
+                        true);
 
         if (requiresSecureDecryption && decoderInfos.isEmpty()) {
             // No secure decoders are available. Fall back to non-secure decoders.
@@ -73,8 +76,33 @@ public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
                             mediaCodecSelector,
                             format,
                             false,
-                            false);
+                            false,
+                            true);
         }
+
+        // If decoder list is empty, allow bad codecs also
+        if (decoderInfos.isEmpty()){
+             boolean stopBadCodecs = false;
+             decoderInfos =
+                    getDecoderInfos(
+                            mediaCodecSelector,
+                            format,
+                            requiresSecureDecoder,
+                            false,
+                            stopBadCodecs);
+
+            if (requiresSecureDecryption && decoderInfos.isEmpty()) {
+                // No secure decoders are available. Fall back to non-secure decoders.
+                decoderInfos =
+                        getDecoderInfos(
+                                mediaCodecSelector,
+                                format,
+                                false,
+                                false,
+                                stopBadCodecs);
+            }
+        }
+
         if (decoderInfos.isEmpty()) {
             return RendererCapabilities.create(C.FORMAT_UNSUPPORTED_SUBTYPE);
         }
@@ -120,7 +148,7 @@ public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
                             mediaCodecSelector,
                             format,
                             requiresSecureDecryption,
-                            /* requiresTunnelingDecoder= */ true);
+                            /* requiresTunnelingDecoder= */ true, false);
             if (!tunnelingDecoderInfos.isEmpty()) {
                 MediaCodecInfo tunnelingDecoderInfo =
                         MediaCodecUtil.getDecoderInfosSortedByFormatSupport(tunnelingDecoderInfos, format)
@@ -144,7 +172,8 @@ public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
             MediaCodecSelector mediaCodecSelector,
             Format format,
             boolean requiresSecureDecoder,
-            boolean requiresTunnelingDecoder)
+            boolean requiresTunnelingDecoder,
+            boolean stopBadCodecs)
             throws MediaCodecUtil.DecoderQueryException {
         @Nullable String mimeType = format.sampleMimeType;
         if (mimeType == null) {
@@ -154,6 +183,11 @@ public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
         List<MediaCodecInfo> decoderInfos =
                 mediaCodecSelector.getDecoderInfos(
                         mimeType, requiresSecureDecoder, requiresTunnelingDecoder);
+
+        if(stopBadCodecs) {
+            decoderInfos = removeProblematicCodecs(decoderInfos);
+        }
+
         @Nullable String alternativeMimeType = MediaCodecUtil.getAlternativeCodecMimeType(format);
         if (alternativeMimeType == null) {
             return ImmutableList.copyOf(decoderInfos);
@@ -162,10 +196,34 @@ public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
                 mediaCodecSelector.getDecoderInfos(
                         alternativeMimeType, requiresSecureDecoder, requiresTunnelingDecoder);
 
+        if(stopBadCodecs) {
+            alternativeDecoderInfos = removeProblematicCodecs(alternativeDecoderInfos);
+        }
+
         return ImmutableList.<MediaCodecInfo>builder()
                 .addAll(decoderInfos)
                 .addAll(alternativeDecoderInfos)
                 .build();
+    }
+
+    private static List<MediaCodecInfo> removeProblematicCodecs(List<MediaCodecInfo> decoderInfos) {
+       List<MediaCodecInfo> changeableMedias = new ArrayList<>(decoderInfos);
+        List<String> problematicCodecs = new ArrayList<>();
+        problematicCodecs.add("OMX.amlogic.avc.decoder.awesome.secure");
+        problematicCodecs.add("OMX.Exynos.avc.dec");
+        problematicCodecs.add("OMX.MTK.VIDEO.DECODER.AVC");
+
+        List<MediaCodecInfo> toRemoveList  = new ArrayList<>();
+        for(MediaCodecInfo mediaCodecInfo : changeableMedias){
+            for(String problemCodecName : problematicCodecs){
+                if(mediaCodecInfo.name.equalsIgnoreCase(problemCodecName)){
+                    toRemoveList.add(mediaCodecInfo);
+                }
+            }
+
+        }
+        changeableMedias.removeAll(toRemoveList);
+        return changeableMedias;
     }
 
     @Override
@@ -175,6 +233,6 @@ public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
         // Done by us, because secure awesome decoder has issue on MiBox4
         requiresSecureDecoder = false;
         return MediaCodecUtil.getDecoderInfosSortedByFormatSupport(
-                getDecoderInfos(mediaCodecSelector, format, requiresSecureDecoder, false), format);
+                getDecoderInfos(mediaCodecSelector, format, requiresSecureDecoder, false,false), format);
     }
 }
