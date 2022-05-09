@@ -216,7 +216,7 @@ public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
         List<MediaCodecInfo> toRemoveList  = new ArrayList<>();
         for(MediaCodecInfo mediaCodecInfo : changeableMedias){
             for(String problemCodecName : problematicCodecs){
-                if(mediaCodecInfo.name.equalsIgnoreCase(problemCodecName)){
+                if(mediaCodecInfo.name.trim().equalsIgnoreCase(problemCodecName)){
                     toRemoveList.add(mediaCodecInfo);
                 }
             }
@@ -231,8 +231,7 @@ public class EnigmaVideoCodecRenderer extends MediaCodecVideoRenderer {
             MediaCodecSelector mediaCodecSelector, Format format, boolean requiresSecureDecoder)
             throws MediaCodecUtil.DecoderQueryException {
         // Done by us, because secure awesome decoder has issue on MiBox4
-        requiresSecureDecoder = false;
         return MediaCodecUtil.getDecoderInfosSortedByFormatSupport(
-                getDecoderInfos(mediaCodecSelector, format, requiresSecureDecoder, false,false), format);
+                getDecoderInfos(mediaCodecSelector, format, requiresSecureDecoder, false,true), format);
     }
 }
