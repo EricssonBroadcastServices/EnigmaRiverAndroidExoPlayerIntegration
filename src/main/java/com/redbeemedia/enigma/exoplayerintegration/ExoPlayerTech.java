@@ -19,7 +19,6 @@ import com.google.android.exoplayer2.IllegalSeekPositionException;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
@@ -95,7 +94,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private DefaultTrackSelector trackSelector;
     private PlayerView playerView = null;
     private boolean hideControllerCalled = false;
-    private final DefaultDrmSessionManager drmSessionManager;
+    private final EnigmaDrmSessionManager drmSessionManager;
     private MediaDrmFromProviderCallback mediaDrmCallback;
     private MediaFormatSpecification supportedFormats = new MediaFormatSpecification();
     private TimelinePositionFormat timestampFormat = TimelinePositionFormat.newFormat(new ExoPlayerDurationFormat(), "HH:mm");
@@ -132,11 +131,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
             if(supportedFormats.isWidewineSupported()) {
                 ExoMediaDrm drm = FrameworkMediaDrm.newInstance(WIDEVINE_UUID);
                 this.mediaDrm = new ReusableExoMediaDrm(() -> drm);
-                DefaultDrmSessionManager.Builder builder = new DefaultDrmSessionManager.Builder();
-                ExoMediaDrm.AppManagedProvider appManagedProvider = new ExoMediaDrm.AppManagedProvider(this.mediaDrm);
-                builder.setUuidAndExoMediaDrmProvider(WIDEVINE_UUID,appManagedProvider);
-                drmSessionManager = builder.build(mediaDrmCallback);
-                //drmSessionManager = new DefaultDrmSessionManager(WIDEVINE_UUID,this.mediaDrm, mediaDrmCallback, new HashMap<>());
+                //drmSessionManager = builder.build(mediaDrmCallback);
+                drmSessionManager = new EnigmaDrmSessionManager(new ExoMediaDrm.AppManagedProvider(this.mediaDrm), mediaDrmCallback, this.mediaDrm);
             } else {
                 this.mediaDrm = null;
                 drmSessionManager = null;
@@ -184,7 +180,9 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private class Controls implements IPlayerImplementationControls {
         @Override
         public void load(ILoadRequest loadRequest, IPlayerImplementationControlResultHandler resultHandler) {
-
+            if (drmSessionManager != null) {
+                drmSessionManager.reset();
+            }
             liveDelay = loadRequest.getLiveDelay();
             final LoadRequestParameterApplier parameterApplier = new LoadRequestParameterApplier(loadRequest) {
                 @Override
@@ -717,8 +715,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             if(downloadData instanceof IOfflineDrmKeySource) {
                 byte[] drmKeys = ((IOfflineDrmKeySource)downloadData).getDrmKeys();
                 if(drmKeys != null) {
-                    drmSessionManager.setMode(MODE_DOWNLOAD,drmKeys);
-                    drmSessionManager.prepare();
+                    drmSessionManager.useOfflineManager(drmKeys);
                 }
             }
 
