@@ -1,5 +1,7 @@
 package com.redbeemedia.enigma.exoplayerintegration;
 
+import static com.google.android.exoplayer2.C.CRYPTO_TYPE_UNSUPPORTED;
+
 import android.os.Looper;
 
 import androidx.annotation.Nullable;
@@ -43,12 +45,22 @@ import com.redbeemedia.enigma.core.util.OpenContainerUtil;
 
     @Override
     public void release() {
-        normalSessionManager.release();
+        if (normalSessionManager != null) {
+            normalSessionManager.release();
+        }
     }
 
     @Override
     public void setPlayer(Looper looper, PlayerId playerId) {
-        normalSessionManager.setPlayer(looper,playerId);
+        DrmSessionManager sessionManager = OpenContainerUtil.getValueSynchronized(activeSessionManager);
+        sessionManager.setPlayer(looper, playerId);
+    }
+
+    @Nullable
+    @Override
+    public DrmSession acquireSession(@Nullable DrmSessionEventListener.EventDispatcher eventDispatcher, Format format) {
+        DrmSessionManager sessionManager = OpenContainerUtil.getValueSynchronized(activeSessionManager);
+        return sessionManager.acquireSession(eventDispatcher, format);
     }
 
     public void reset() {
@@ -62,16 +74,13 @@ import com.redbeemedia.enigma.core.util.OpenContainerUtil;
         OpenContainerUtil.setValueSynchronized(activeSessionManager, drmSessionManager, null);
     }
 
-    @Nullable
-    @Override
-    public DrmSession acquireSession(@Nullable DrmSessionEventListener.EventDispatcher eventDispatcher, Format format) {
-        DrmSessionManager sessionManager = OpenContainerUtil.getValueSynchronized(activeSessionManager);
-        return sessionManager.acquireSession(eventDispatcher, format);
-    }
 
     @Override
     public int getCryptoType(Format format) {
-        return activeSessionManager.value.getCryptoType(format);
+        if(format.cryptoType == CRYPTO_TYPE_UNSUPPORTED) {
+            return activeSessionManager.value.getCryptoType(format);
+        }
+        return drm.getCryptoType();
     }
 
     public void setMode(int modeDownload, byte[] drmKeys) {
