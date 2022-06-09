@@ -77,10 +77,8 @@ import com.redbeemedia.enigma.core.util.OpenContainerUtil;
 
     @Override
     public int getCryptoType(Format format) {
-        if(format.cryptoType == CRYPTO_TYPE_UNSUPPORTED) {
-            return activeSessionManager.value.getCryptoType(format);
-        }
-        return drm.getCryptoType();
+        DrmSessionManager sessionManager = OpenContainerUtil.getValueSynchronized(activeSessionManager);
+        return sessionManager.getCryptoType(format);
     }
 
     public void setMode(int modeDownload, byte[] drmKeys) {
