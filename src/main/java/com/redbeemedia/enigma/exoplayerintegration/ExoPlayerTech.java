@@ -1,7 +1,5 @@
 package com.redbeemedia.enigma.exoplayerintegration;
 
-import static com.google.android.exoplayer2.drm.DefaultDrmSessionManager.MODE_DOWNLOAD;
-
 import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
@@ -22,11 +20,14 @@ import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
+import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.MediaSourceFactory;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
+import com.google.android.exoplayer2.source.hls.HlsManifest;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
+import com.google.android.exoplayer2.source.hls.playlist.HlsMediaPlaylist;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
@@ -79,6 +80,7 @@ import com.redbeemedia.enigma.exoplayerintegration.util.MediaSourceFactoryConfig
 import java.security.InvalidParameterException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -228,7 +230,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             AndroidThreadUtil.runOnUiThread(() -> {
                 player.setPlayWhenReady(true);
                 resultHandler.onDone();
-            });;
+            });
         }
 
         @Override
@@ -548,6 +550,38 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 ITimeline timeline = enigmaPlayer.getTimeline();
                 setTimestamp(positionView, timeline.getCurrentPosition());
                 setTimestamp(durationView, timeline.getCurrentEndBound());
+                // setup Metadata listener, listen and forward to app clients
+                player.addListener(
+                        new Player.Listener() {
+                            @Override
+                            public void onTimelineChanged(Timeline timelineObj, @Player.TimelineChangeReason int reason) {
+                                Object manifest = player.getCurrentManifest();
+                                if (manifest != null) {
+                                    if(manifest instanceof HlsManifest) {
+                                        HlsManifest hlsManifest = (HlsManifest) manifest;
+                                        HlsMediaPlaylist mediaPlaylist = hlsManifest.mediaPlaylist;
+                                        boolean isValidEvent = false;
+                                        for (String tag : mediaPlaylist.tags) {
+                                            if (tag.toLowerCase(Locale.ROOT).contains("EXT-X-DATERANGE".toLowerCase(Locale.ROOT))) {
+                                                isValidEvent = true;
+                                                break;
+                                            }
+                                        }
+                                        if (isValidEvent) {
+                                            timeline.onHlsMetadata(mediaPlaylist);
+                                        }
+                                    }
+                                }
+                            }
+
+
+                            @Override
+                            public void onMetadata(Metadata metadata) {
+                                // event for DASH event stream
+                                timeline.onDashMetadata(metadata);
+                            }
+                        });
+
                 timeline.addListener(new BaseTimelineListener() {
                     @Override
                     public void onCurrentPositionChanged(ITimelinePosition timelinePosition) {
