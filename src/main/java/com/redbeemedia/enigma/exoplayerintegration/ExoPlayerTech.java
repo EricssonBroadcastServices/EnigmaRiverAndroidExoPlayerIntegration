@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +21,7 @@ import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
+import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
 import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.MediaSourceFactory;
@@ -177,6 +179,14 @@ public class ExoPlayerTech implements IPlayerImplementation {
     @Override
     public void setupPlayerNotificationManager(PlayerNotificationManager manager) {
         manager.setPlayer(player);
+    }
+
+    @Override
+    public MediaSessionCompat createMediaSession(Context applicationContext) {
+        MediaSessionCompat mediaSession = new MediaSessionCompat(applicationContext, applicationContext.getPackageName());
+        MediaSessionConnector mediaSessionConnector = new MediaSessionConnector(mediaSession);
+        mediaSessionConnector.setPlayer(player);
+        return mediaSession;
     }
 
     private class Controls implements IPlayerImplementationControls {
