@@ -1,7 +1,7 @@
 package com.redbeemedia.enigma.exoplayerintegration;
 
 import android.media.MediaCodec;
-
+import androidx.annotation.Nullable;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.Format;
@@ -15,6 +15,7 @@ import com.google.android.exoplayer2.trackselection.FixedTrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.util.MimeTypes;
+import com.google.android.exoplayer2.util.NonNullApi;
 import com.redbeemedia.enigma.core.error.DrmKeysExpiredError;
 import com.redbeemedia.enigma.core.player.IPlayerImplementationListener;
 import com.redbeemedia.enigma.core.player.track.IPlayerImplementationTrack;
@@ -27,9 +28,9 @@ import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoVideoTrack;
 import java.util.ArrayList;
 import java.util.List;
 
+@NonNullApi
 /*package-protected*/ class ExoPlayerListener implements Player.Listener {
-    private IPlayerImplementationListener listener;
-    private int lastState = Player.STATE_IDLE;
+    private final IPlayerImplementationListener listener;
     private boolean signalLoadedOnReady = true;
 
     public ExoPlayerListener(IPlayerImplementationListener listener) {
@@ -70,6 +71,7 @@ import java.util.List;
         return false;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
         if(playbackState == Player.STATE_READY) {
@@ -90,13 +92,13 @@ import java.util.List;
         } else if(playbackState == Player.STATE_IDLE) {
             signalLoadedOnReady = true;
         }
-        this.lastState = playbackState;
     }
 
     public void onLoadingNewMediaSource() {
         AndroidThreadUtil.runOnUiThread(() -> signalLoadedOnReady = true);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
         List<IPlayerImplementationTrack> tracks = new ArrayList<>();
@@ -109,13 +111,13 @@ import java.util.List;
                     label = format.language;
                 }
                 if(isTextMimeType(format.containerMimeType) || isTextMimeType(format.sampleMimeType)) {
-                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language, format.id);
+                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language, format.id, format.roleFlags);
                     if(!tracks.contains(subtitleTrack)) {
                         tracks.add(subtitleTrack);
                     }
                 }
                 if(isAudioType(format.containerMimeType)) {
-                    ExoAudioTrack audioTrack = new ExoAudioTrack(label, format.language, format.id);
+                    ExoAudioTrack audioTrack = new ExoAudioTrack(trackGroup, label, format.language, format.id, format.roleFlags);
                     if(!tracks.contains(audioTrack)) {
                         tracks.add(audioTrack);
                     }
@@ -149,15 +151,55 @@ import java.util.List;
         listener.onTracksChanged(tracks);
     }
 
-    private static boolean isTextMimeType(String mimeType) {
+    // TODO: replace deprecated onTracksChanged by onTracksInfoChanged, once we figure out how to retrieve the current ABR selected track...
+    /*
+    @Override
+    public void onTracksInfoChanged(@NotNull TracksInfo tracksInfo)
+    {
+        List<IPlayerImplementationTrack> tracks = new ArrayList<>();
+        for (TracksInfo.TrackGroupInfo trackGroupInfo : tracksInfo.getTrackGroupInfos())
+        {
+            TrackGroup trackGroup = trackGroupInfo.getTrackGroup();
+            for (int ii = 0; ii < trackGroup.length; ii++)
+            {
+                final Format format = trackGroup.getFormat(ii);
+                String label = format.label;
+                if (label == null) {
+                    label = format.language;
+                }
+                if(isTextMimeType(format.containerMimeType) || isTextMimeType(format.sampleMimeType)) {
+                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language, format.id, format.roleFlags);
+                    if(!tracks.contains(subtitleTrack)) {
+                        tracks.add(subtitleTrack);
+                    }
+                }
+                if(isAudioType(format.containerMimeType)) {
+                    ExoAudioTrack audioTrack = new ExoAudioTrack(label, format.language, format.id, format.roleFlags);
+                    if(!tracks.contains(audioTrack)) {
+                        tracks.add(audioTrack);
+                    }
+                }
+                if(isVideoType(format.containerMimeType) || isVideoType(format.sampleMimeType)) {
+                    ExoVideoTrack videoTrack = new ExoVideoTrack(format, format.id);
+                    if(!tracks.contains(videoTrack)) {
+                        tracks.add(videoTrack);
+                    }
+                }
+            }
+        }
+
+        //listener.onTracksChanged(tracks);
+    }*/
+
+    private static boolean isTextMimeType(@Nullable String mimeType) {
         return MimeTypes.getTrackType(mimeType) == C.TRACK_TYPE_TEXT;
     }
 
-    private static boolean isAudioType(String mimeType) {
+    private static boolean isAudioType(@Nullable String mimeType) {
         return MimeTypes.getTrackType(mimeType) == C.TRACK_TYPE_AUDIO;
     }
 
-    private static boolean isVideoType(String mimeType) {
+    private static boolean isVideoType(@Nullable String mimeType) {
         return MimeTypes.getTrackType(mimeType) == C.TRACK_TYPE_VIDEO;
     }
 

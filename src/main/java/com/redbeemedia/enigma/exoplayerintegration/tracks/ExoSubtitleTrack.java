@@ -1,7 +1,6 @@
 package com.redbeemedia.enigma.exoplayerintegration.tracks;
 
 import androidx.annotation.Nullable;
-
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.redbeemedia.enigma.core.subtitle.ISubtitleTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ExoUtil;
@@ -12,8 +11,8 @@ public final class ExoSubtitleTrack extends AbstractExoTrack implements ISubtitl
         super(label,code);
     }
 
-    public ExoSubtitleTrack(String label,String code,String id) {
-        super(label,code, id);
+    public ExoSubtitleTrack(String label,String code,String id, int role) {
+        super(label,code, id, role);
     }
 
 
@@ -25,7 +24,8 @@ public final class ExoSubtitleTrack extends AbstractExoTrack implements ISubtitl
     @Override
     public void applyTo(DefaultTrackSelector trackSelector) {
         DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
-        parametersBuilder.setPreferredTextLanguage(getLabel());
+        parametersBuilder.setPreferredTextLanguage(getCode());
+        parametersBuilder.setPreferredTextRoleFlags(getRoleFlag());
         parametersBuilder.setRendererDisabled(ExoUtil.DEFAULT_TEXT_RENDERER_INDEX, false);
         trackSelector.setParameters(parametersBuilder.build());
     }

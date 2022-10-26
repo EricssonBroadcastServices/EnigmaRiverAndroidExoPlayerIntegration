@@ -1,19 +1,19 @@
 package com.redbeemedia.enigma.exoplayerintegration.tracks;
 
 import androidx.annotation.Nullable;
-
+import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
+import com.google.android.exoplayer2.trackselection.TrackSelectionOverrides;
 import com.redbeemedia.enigma.core.audio.IAudioTrack;
 import com.redbeemedia.enigma.exoplayerintegration.ExoUtil;
 
 public final class ExoAudioTrack extends AbstractExoTrack implements IAudioTrack {
-    public ExoAudioTrack(String label, String code, String id) {
-        super(label, code, id);
-    }
+    private final TrackGroup trackGroup;
 
-    @Deprecated
-    public ExoAudioTrack(String label, String code) {
-        super(label, code, null);
+    public ExoAudioTrack(TrackGroup trackGroup, String label, String code, String id, int role)
+    {
+        super(label, code, id, role);
+        this.trackGroup = trackGroup;
     }
 
     @Override
@@ -29,7 +29,15 @@ public final class ExoAudioTrack extends AbstractExoTrack implements IAudioTrack
     @Override
     public void applyTo(DefaultTrackSelector trackSelector) {
         DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
-        parametersBuilder.setPreferredAudioLanguage(getLabel());
+        // Selection should rather be done on language + role
+        // using overrides as a workaround because some customers did not set the roles properly...
+        TrackSelectionOverrides.Builder overrides = new TrackSelectionOverrides.Builder();
+        overrides.addOverride(new TrackSelectionOverrides.TrackSelectionOverride(trackGroup));
+        parametersBuilder.setTrackSelectionOverrides(overrides.build());
+        /*
+        parametersBuilder.setPreferredAudioLanguage(getCode());
+        parametersBuilder.setPreferredAudioRoleFlags(getRoleFlag());
+         */
         parametersBuilder.setRendererDisabled(ExoUtil.DEFAULT_AUDIO_RENDERER_INDEX, false);
         trackSelector.setParameters(parametersBuilder.build());
     }
