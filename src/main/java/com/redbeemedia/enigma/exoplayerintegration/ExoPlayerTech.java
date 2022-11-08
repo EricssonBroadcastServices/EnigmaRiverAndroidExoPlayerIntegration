@@ -92,13 +92,13 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private static final UUID WIDEVINE_UUID = Util.getDrmUuid("widevine");
 
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final DataSource.Factory mediaDataSourceFactory;
-    private final ReusableExoMediaDrm mediaDrm;
+    private DataSource.Factory mediaDataSourceFactory;
+    private ReusableExoMediaDrm mediaDrm;
     private ExoPlayer player;
     private DefaultTrackSelector trackSelector;
     private PlayerView playerView = null;
     private boolean hideControllerCalled = false;
-    private final EnigmaDrmSessionManager drmSessionManager;
+    private EnigmaDrmSessionManager drmSessionManager;
     private MediaDrmFromProviderCallback mediaDrmCallback;
     private MediaFormatSpecification supportedFormats = new MediaFormatSpecification();
     private TimelinePositionFormat timestampFormat = TimelinePositionFormat.newFormat(new ExoPlayerDurationFormat(), "HH:mm");
@@ -115,12 +115,21 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private DriftMeter driftMeter;
 
     private EnigmaMediaSourceFactory mediaSourceFactory = new EnigmaMediaSourceFactory();
+
+    public ExoPlayerTech(Context context, String appName, boolean useDrmSecurityLevelL3) {
+        setupExoplayerTech(context, appName, useDrmSecurityLevelL3);
+    }
+
     public ExoPlayerTech(Context context, String appName) {
+        setupExoplayerTech(context, appName, false);
+    }
+
+    private void setupExoplayerTech(Context context, String appName, boolean useDrmSecurityLevelL3) {
         ExoPlayerIntegrationContext.assertInitialized(); //Assert module initialized
 
         this.mediaDataSourceFactory = new DefaultDataSourceFactory(context, Util.getUserAgent(context, appName));
 
-        this.mediaDrmCallback = new MediaDrmFromProviderCallback(context,appName);
+        this.mediaDrmCallback = new MediaDrmFromProviderCallback(context, appName);
 
         for(EnigmaMediaFormat format : initSupportedFormats(new HashSet<>())) {
             supportedFormats.add(format);
@@ -133,7 +142,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
         rendersFactory.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
         try {
             if(supportedFormats.isWidewineSupported()) {
-                ExoMediaDrm drm = FrameworkMediaDrm.newInstance(WIDEVINE_UUID);
+                FrameworkMediaDrm frameworkMediaDrm = FrameworkMediaDrm.newInstance(WIDEVINE_UUID);
+                if (useDrmSecurityLevelL3) {
+                    frameworkMediaDrm.setPropertyString("securityLevel", "L3");
+                }
+                ExoMediaDrm drm = frameworkMediaDrm;
                 this.mediaDrm = new ReusableExoMediaDrm(() -> drm);
                 //drmSessionManager = builder.build(mediaDrmCallback);
                 drmSessionManager = new EnigmaDrmSessionManager(new ExoMediaDrm.AppManagedProvider(this.mediaDrm), mediaDrmCallback, this.mediaDrm);
@@ -521,6 +534,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 timeBar.setPosition(millis);
             }
         });
+    }
+
+    @Override
+    public Player getInternalPlayer() {
+        return player;
     }
 
     @Override
