@@ -40,6 +40,7 @@ import com.google.android.exoplayer2.ui.SubtitleView;
 import com.google.android.exoplayer2.ui.TimeBar;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
+import com.google.android.exoplayer2.upstream.DefaultLoadErrorHandlingPolicy;
 import com.google.android.exoplayer2.util.Util;
 import com.redbeemedia.enigma.core.ads.AdIncludedTimeline;
 import com.redbeemedia.enigma.core.audio.IAudioTrack;
@@ -79,6 +80,7 @@ import com.redbeemedia.enigma.exoplayerintegration.ui.TimeBarUtil;
 import com.redbeemedia.enigma.exoplayerintegration.util.LoadRequestParameterApplier;
 import com.redbeemedia.enigma.exoplayerintegration.util.MediaSourceFactoryConfigurator;
 
+import java.io.FileNotFoundException;
 import java.security.InvalidParameterException;
 import java.util.HashSet;
 import java.util.List;
@@ -823,6 +825,17 @@ public class ExoPlayerTech implements IPlayerImplementation {
             internalMediaSourceFactory.setDrmSessionManagerProvider(mediaItem -> drmSessionManager);
         }
         mediaSourceFactory.setInternalFactory(internalMediaSourceFactory);
+        mediaSourceFactory.setLoadErrorHandlingPolicy(new ExoplayerErrorHandlingPolicy());
         return mediaSourceFactory.createMediaSource(builder.build());
+    }
+}
+
+final class ExoplayerErrorHandlingPolicy extends DefaultLoadErrorHandlingPolicy {
+    public long getRetryDelayMsFor(LoadErrorInfo loadErrorInfo) {
+        if (loadErrorInfo.errorCount > 1) {
+            return C.TIME_UNSET;
+        }
+        // non-fatal error retry after 10 seconds
+        return loadErrorInfo.exception instanceof FileNotFoundException ? C.TIME_UNSET : 10000;
     }
 }
