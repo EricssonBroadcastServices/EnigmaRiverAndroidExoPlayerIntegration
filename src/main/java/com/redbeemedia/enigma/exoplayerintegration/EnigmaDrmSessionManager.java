@@ -22,9 +22,9 @@ import com.redbeemedia.enigma.core.util.OpenContainerUtil;
     private final IDrmSessionManagerFactory sessionManagerFactory;
     private final DefaultDrmSessionManager normalSessionManager;
     private final OpenContainer<DrmSessionManager> activeSessionManager;
-    private final ExoMediaDrm drm;
+    private final ReusableExoMediaDrm drm;
 
-    public EnigmaDrmSessionManager(ExoMediaDrm.Provider mediaDrmProvider, MediaDrmCallback mediaDrmCallback, ExoMediaDrm mediaDrm) {
+    public EnigmaDrmSessionManager(ExoMediaDrm.Provider mediaDrmProvider, MediaDrmCallback mediaDrmCallback, ReusableExoMediaDrm mediaDrm) {
         sessionManagerFactory = () -> new DefaultDrmSessionManager.Builder()
                 .setUuidAndExoMediaDrmProvider(C.WIDEVINE_UUID, mediaDrmProvider)
                 .setMultiSession(false)
@@ -87,5 +87,9 @@ import com.redbeemedia.enigma.core.util.OpenContainerUtil;
 
     private interface IDrmSessionManagerFactory {
         DefaultDrmSessionManager newDrmSessionManager();
+    }
+
+    public ReusableExoMediaDrm getDrm() {
+        return drm;
     }
 }

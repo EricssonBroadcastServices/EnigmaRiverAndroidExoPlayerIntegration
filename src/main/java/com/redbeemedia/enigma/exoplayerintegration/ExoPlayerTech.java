@@ -85,6 +85,7 @@ import java.security.InvalidParameterException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
@@ -426,6 +427,11 @@ public class ExoPlayerTech implements IPlayerImplementation {
                     return;
                 }
             });
+        }
+
+        @Override
+        public Map<String, String> getDrmKeyStatusMap() {
+            return drmSessionManager.getDrm().getQueryKeyStatus();
         }
     }
 

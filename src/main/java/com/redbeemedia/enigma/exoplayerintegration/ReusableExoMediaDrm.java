@@ -8,6 +8,7 @@ import android.os.PersistableBundle;
 
 import androidx.annotation.Nullable;
 
+import com.google.android.exoplayer2.analytics.PlayerId;
 import com.google.android.exoplayer2.decoder.CryptoConfig;
 import com.google.android.exoplayer2.drm.DrmInitData;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
@@ -20,6 +21,7 @@ import java.util.Map;
 /*package-protected*/ class ReusableExoMediaDrm implements ExoMediaDrm {
     private final ExoMediaDrmFactory factory;
     private ExoMediaDrm wrapped;
+    private byte[] sessionId;
 
     public ReusableExoMediaDrm(ExoMediaDrmFactory factory) throws UnsupportedDrmException {
         this.factory = factory;
@@ -43,12 +45,19 @@ import java.util.Map;
 
     @Override
     public byte[] openSession() throws MediaDrmException {
-        return wrapped.openSession();
+        byte[] bytes = wrapped.openSession();
+        this.sessionId = bytes;
+        return bytes;
     }
 
     @Override
     public void closeSession(byte[] sessionId) {
         wrapped.closeSession(sessionId);
+    }
+
+    @Override
+    public void setPlayerIdForSession(byte[] sessionId, PlayerId playerId) {
+        wrapped.setPlayerIdForSession(sessionId, playerId);
     }
 
     @Override
@@ -73,7 +82,17 @@ import java.util.Map;
 
     @Override
     public Map<String, String> queryKeyStatus(byte[] sessionId) {
+        if (sessionId != null) {
+            this.sessionId = sessionId;
+        }
         return wrapped.queryKeyStatus(sessionId);
+    }
+
+    public Map<String, String> getQueryKeyStatus() {
+        if(this.sessionId == null){
+            return new HashMap<>();
+        }
+        return wrapped.queryKeyStatus(this.sessionId);
     }
 
     @Override
@@ -111,6 +130,9 @@ import java.util.Map;
 
     @Override
     public void restoreKeys(byte[] sessionId, byte[] keySetId) {
+        if (sessionId != null) {
+            this.sessionId = sessionId;
+        }
         wrapped.restoreKeys(sessionId, keySetId);
     }
 
