@@ -89,10 +89,11 @@ import java.util.Map;
     }
 
     public Map<String, String> getQueryKeyStatus() {
-        if(this.sessionId == null){
+        try {
+            return wrapped.queryKeyStatus(this.sessionId);
+        } catch (Exception e) {
             return new HashMap<>();
         }
-        return wrapped.queryKeyStatus(this.sessionId);
     }
 
     @Override
