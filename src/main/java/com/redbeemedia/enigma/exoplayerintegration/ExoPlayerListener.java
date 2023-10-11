@@ -32,9 +32,12 @@ import java.util.List;
 /*package-protected*/ class ExoPlayerListener implements Player.Listener {
     private final IPlayerImplementationListener listener;
     private boolean signalLoadedOnReady = true;
+    private final ExoPlayerTech exoPlayerTech;
 
-    public ExoPlayerListener(IPlayerImplementationListener listener) {
+    public ExoPlayerListener(IPlayerImplementationListener listener, ExoPlayerTech exoPlayerTech) {
         this.listener = listener;
+        this.exoPlayerTech = exoPlayerTech;
+
     }
 
     @Override
@@ -117,6 +120,9 @@ import java.util.List;
                     }
                 }
                 if(isAudioType(format.containerMimeType)) {
+                    if (!exoPlayerTech.isAudioTrackSupported(format)) {
+                        continue;
+                    }
                     ExoAudioTrack audioTrack = new ExoAudioTrack(trackGroup, label, format.language, format.id, format.roleFlags);
                     if(!tracks.contains(audioTrack)) {
                         tracks.add(audioTrack);

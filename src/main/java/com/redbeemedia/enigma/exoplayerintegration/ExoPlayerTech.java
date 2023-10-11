@@ -1,5 +1,7 @@
 package com.redbeemedia.enigma.exoplayerintegration;
 
+import static com.google.android.exoplayer2.C.FORMAT_HANDLED;
+
 import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
@@ -13,11 +15,15 @@ import android.widget.TextView;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
+import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.IllegalSeekPositionException;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.Renderer;
 import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.audio.MediaCodecAudioRenderer;
 import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
@@ -135,17 +141,17 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         this.mediaDrmCallback = new MediaDrmFromProviderCallback(context, appName);
 
-        for(EnigmaMediaFormat format : initSupportedFormats(new HashSet<>())) {
+        for (EnigmaMediaFormat format : initSupportedFormats(new HashSet<>())) {
             supportedFormats.add(format);
         }
 
         this.trackSelector = new DefaultTrackSelector(context, new AdaptiveTrackSelection.Factory());
 
         DefaultRenderersFactory rendersFactory =
-            new DefaultRenderersFactory(context);
+                new DefaultRenderersFactory(context);
         rendersFactory.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
         try {
-            if(supportedFormats.isWidewineSupported()) {
+            if (supportedFormats.isWidewineSupported()) {
                 FrameworkMediaDrm frameworkMediaDrm = FrameworkMediaDrm.newInstance(WIDEVINE_UUID);
                 if (useDrmSecurityLevelL3) {
                     frameworkMediaDrm.setPropertyString("securityLevel", "L3");
@@ -176,7 +182,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
         environment.setMediaFormatSupportSpec(supportedFormats);
         ITimelinePositionFactory timelinePositionFactory = environment.getTimelinePositionFactory();
 
-        ExoPlayerListener newExoPlayerListener = new ExoPlayerListener(environment.getPlayerImplementationListener());
+        ExoPlayerListener newExoPlayerListener = new ExoPlayerListener(environment.getPlayerImplementationListener(), this);
         OpenContainerUtil.setValueSynchronized(exoPlayerListener, newExoPlayerListener, null);
         player.addListener(newExoPlayerListener);
 
@@ -190,6 +196,30 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
     public void setTimestampFormat(TimelinePositionFormat timestampFormat) {
         this.timestampFormat = timestampFormat;
+    }
+
+
+    public boolean isAudioTrackSupported(Format format) {
+        MediaCodecAudioRenderer audioRenderer = null;
+        for (int i = 0; i < player.getRendererCount(); i++) {
+            Renderer renderer = player.getRenderer(i);
+            if (renderer instanceof MediaCodecAudioRenderer) {
+                audioRenderer = (MediaCodecAudioRenderer) renderer;
+                break;
+            }
+        }
+        if (audioRenderer != null) {
+            try {
+                int capabilities = audioRenderer.supportsFormat(format);
+                if ((capabilities & FORMAT_HANDLED) == 0) {
+                    // not supported
+                    return false;
+                }
+            } catch (ExoPlaybackException e) {
+                // ignore
+            }
+        }
+        return true;
     }
 
     @Override
@@ -221,7 +251,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             final MediaSource mediaSource;
             try {
                 mediaSource = buildMediaSource(loadRequest);
-            } catch(ControlRequestResolutionException earlyResolution) {
+            } catch (ControlRequestResolutionException earlyResolution) {
                 earlyResolution.apply(resultHandler);
                 return;
             } catch (RuntimeException e) {
@@ -229,18 +259,20 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 return;
             }
             AndroidThreadUtil.runOnUiThread(() -> {
-                if(released) { return; }
+                if (released) {
+                    return;
+                }
 
                 try {
 
-                    if(mediaDrm != null) {
+                    if (mediaDrm != null) {
                         mediaDrm.revive();
                     }
                     parameterApplier.applyTo(trackSelector);
                     player.setMediaSource(mediaSource);
                     player.prepare();
                     ExoPlayerListener listenerSnapshot = OpenContainerUtil.getValueSynchronized(exoPlayerListener);
-                    if(listenerSnapshot != null) {
+                    if (listenerSnapshot != null) {
                         listenerSnapshot.onLoadingNewMediaSource();
                     }
                 } catch (Exception e) {
@@ -277,7 +309,9 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public void seekTo(ISeekPosition seekPosition, IPlayerImplementationControlResultHandler resultHandler) {
-            if(released) { return; }
+            if (released) {
+                return;
+            }
             if (seekPosition == ISeekPosition.TIMELINE_START) {
                 AndroidThreadUtil.runOnUiThread(() -> {
                     try {
@@ -289,7 +323,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 });
             } else if (seekPosition == ISeekPosition.LIVE_EDGE) {
                 AndroidThreadUtil.runOnUiThread(() -> {
-                    if(!player.isCurrentWindowDynamic()) {
+                    if (!player.isCurrentWindowDynamic()) {
                         resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.INAPPLICABLE_FOR_CURRENT_STREAM, "Video is not dynamic"));
                     } else {
                         try {
@@ -300,7 +334,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                         }
                     }
                 });
-            } else if(seekPosition instanceof IPlayerImplementationControls.TimelineRelativePosition) {
+            } else if (seekPosition instanceof IPlayerImplementationControls.TimelineRelativePosition) {
                 long millis = ((TimelineRelativePosition) seekPosition).getMillis();
                 AndroidThreadUtil.runOnUiThread(() -> {
                     player.seekTo(millis);
@@ -326,7 +360,9 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public void setVolume(float volume, IPlayerImplementationControlResultHandler resultHandler) {
-            if(released) { return; }
+            if (released) {
+                return;
+            }
             AndroidThreadUtil.runOnUiThread(() -> {
                 try {
                     player.setVolume(volume);
@@ -340,15 +376,17 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public void setSubtitleTrack(ISubtitleTrack track, final IPlayerImplementationControlResultHandler resultHandler) {
-            if(released) { return; }
-            if(track != null && !(track instanceof  ExoSubtitleTrack)) {
-                resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, ISubtitleTrack.class.getSimpleName()+" must originate from ExoPlayer-integration"));
+            if (released) {
+                return;
+            }
+            if (track != null && !(track instanceof ExoSubtitleTrack)) {
+                resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, ISubtitleTrack.class.getSimpleName() + " must originate from ExoPlayer-integration"));
                 return;
             }
             final ExoSubtitleTrack exoSubtitleTrack = (ExoSubtitleTrack) track;
             AndroidThreadUtil.runOnUiThread(() -> {
                 try {
-                    if(exoSubtitleTrack != null) {
+                    if (exoSubtitleTrack != null) {
                         exoSubtitleTrack.applyTo(trackSelector);
                     } else {
                         ExoSubtitleTrack.applyNone(trackSelector);
@@ -363,15 +401,17 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public void setAudioTrack(IAudioTrack track, final IPlayerImplementationControlResultHandler resultHandler) {
-            if(released) { return; }
-            if(track != null && !(track instanceof ExoAudioTrack)) {
-                resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, IAudioTrack.class.getSimpleName()+" must originate from ExoPlayer-integration"));
+            if (released) {
+                return;
+            }
+            if (track != null && !(track instanceof ExoAudioTrack)) {
+                resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, IAudioTrack.class.getSimpleName() + " must originate from ExoPlayer-integration"));
                 return;
             }
             final ExoAudioTrack exoAudioTrack = (ExoAudioTrack) track;
             AndroidThreadUtil.runOnUiThread(() -> {
                 try {
-                    if(exoAudioTrack != null) {
+                    if (exoAudioTrack != null) {
                         exoAudioTrack.applyTo(trackSelector);
                     } else {
                         resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, "track was null"));
@@ -387,15 +427,17 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public void setVideoTrack(IVideoTrack track, final IPlayerImplementationControlResultHandler resultHandler) {
-            if(released) { return; }
-            if(track != null && !(track instanceof ExoVideoTrack)) {
-                resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, IAudioTrack.class.getSimpleName()+" must originate from ExoPlayer-integration"));
+            if (released) {
+                return;
+            }
+            if (track != null && !(track instanceof ExoVideoTrack)) {
+                resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, IAudioTrack.class.getSimpleName() + " must originate from ExoPlayer-integration"));
                 return;
             }
             final ExoVideoTrack exoVideoTrack = (ExoVideoTrack) track;
             AndroidThreadUtil.runOnUiThread(() -> {
                 try {
-                    if(exoVideoTrack != null) {
+                    if (exoVideoTrack != null) {
                         exoVideoTrack.applyTo(trackSelector);
                     } else {
                         resultHandler.onRejected(new ExoRejectReason(IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT, "track was null"));
@@ -411,7 +453,9 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public void setMaxVideoTrackDimensions(int width, int height, IPlayerImplementationControlResultHandler controlResultHandler) {
-            if(released) { return; }
+            if (released) {
+                return;
+            }
             AndroidThreadUtil.runOnUiThread(() -> {
                 try {
                     DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
@@ -422,7 +466,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                     parametersBuilder.setMaxVideoBitrate(Integer.MAX_VALUE);
                     trackSelector.setParameters(parametersBuilder.build());
                     controlResultHandler.onDone();
-                } catch (RuntimeException e){
+                } catch (RuntimeException e) {
                     controlResultHandler.onError(new UnexpectedError(e));
                     return;
                 }
@@ -441,6 +485,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
         private ITimelinePositionFactory timelinePositionFactory;
         private final Timeline.Window reusableWindow = new Timeline.Window();
         private boolean released;
+
         public void release() {
             released = true;
         }
@@ -463,10 +508,12 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public ITimelinePosition getCurrentStartBound() {
-            if(released) { return null; }
+            if (released) {
+                return null;
+            }
             try {
                 Timeline timeline = AndroidThreadUtil.getBlockingOnUiThread(OPERATION_TIMEOUT, () -> player.getCurrentTimeline());
-                if(timeline.getWindowCount() > 0) {
+                if (timeline.getWindowCount() > 0) {
                     return timelinePositionFactory.newPosition(0);
                 } else {
                     return null;
@@ -478,7 +525,9 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public ITimelinePosition getCurrentEndBound() {
-            if(released) { return null; }
+            if (released) {
+                return null;
+            }
             try {
                 long duration = AndroidThreadUtil.getBlockingOnUiThread(OPERATION_TIMEOUT, () -> player.getDuration());
                 ITimelinePosition iTimelinePosition = duration != C.TIME_UNSET ? timelinePositionFactory.newPosition(duration) : null;
@@ -493,11 +542,13 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
         @Override
         public ITimelinePosition getLivePosition() {
-            if(released) { return null; }
+            if (released) {
+                return null;
+            }
             try {
                 return AndroidThreadUtil.getBlockingOnUiThread(OPERATION_TIMEOUT, () -> {
                     Timeline timeline = player.getCurrentTimeline();
-                    if(timeline.getWindowCount() > 0) {
+                    if (timeline.getWindowCount() > 0) {
                         int currentWindowIndex = player.getCurrentMediaItemIndex();
                         long position;
                         synchronized (reusableWindow) {
@@ -528,10 +579,12 @@ public class ExoPlayerTech implements IPlayerImplementation {
         released = true;
         this.driftMeter.release();
         this.player.release();
-        if(this.mediaDrm != null) {
+        if (this.mediaDrm != null) {
             this.mediaDrm.release();
         }
-        if(organs != null) { organs.release(); }
+        if (organs != null) {
+            organs.release();
+        }
     }
 
     @Override
@@ -558,7 +611,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
         supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.DASH, EnigmaMediaFormat.DrmTechnology.NONE));
 
         //Check if we can instantiate FrameworkMediaDrm using WIDEWINE_UUID. If we get any exception, this devices can not support Widewine
-        if(canInstantiateWidewineDrm()) {
+        if (canInstantiateWidewineDrm()) {
             supportedFormats.add(new EnigmaMediaFormat(EnigmaMediaFormat.StreamFormat.DASH, EnigmaMediaFormat.DrmTechnology.WIDEVINE));
         } else {
             Log.d(TAG, "Widewine does not seem to be supported on this device");
@@ -593,7 +646,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                             public void onTimelineChanged(Timeline timelineObj, @Player.TimelineChangeReason int reason) {
                                 Object manifest = player.getCurrentManifest();
                                 if (manifest != null) {
-                                    if(manifest instanceof HlsManifest) {
+                                    if (manifest instanceof HlsManifest) {
                                         HlsManifest hlsManifest = (HlsManifest) manifest;
                                         HlsMediaPlaylist mediaPlaylist = hlsManifest.mediaPlaylist;
                                         boolean isValidEvent = false;
@@ -621,17 +674,17 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 timeline.addListener(new BaseTimelineListener() {
                     @Override
                     public void onCurrentPositionChanged(ITimelinePosition timelinePosition) {
-                        if(timelinePosition != null) {
+                        if (timelinePosition != null) {
                             ITimelinePosition startBound = timeline.getCurrentStartBound();
-                            if(startBound != null) {
-                                if(timelinePosition.before(startBound)) {
+                            if (startBound != null) {
+                                if (timelinePosition.before(startBound)) {
                                     timelinePosition = startBound;
                                 }
                             }
 
                             ITimelinePosition endBound = timeline.getCurrentEndBound();
-                            if(endBound != null) {
-                                if(timelinePosition.after(endBound)) {
+                            if (endBound != null) {
+                                if (timelinePosition.after(endBound)) {
                                     timelinePosition = endBound;
                                 }
                             }
@@ -656,13 +709,14 @@ public class ExoPlayerTech implements IPlayerImplementation {
                 connectButtonIfExists(exoButton, virtualButton, false);
             }
             private void connectButtonIfExists(ExoButton exoButton, IVirtualButton virtualButton, boolean hideIfDisabled) {
-                if(exoButton != null) {
+                if (exoButton != null) {
                     exoButton.setVirtualButton(virtualButton, handler);
-                    if(hideIfDisabled) {
+                    if (hideIfDisabled) {
                         exoButton.hideIfDisabled();
                     }
                 }
             }
+
             @Override
             public void run() {
                 IVirtualControls virtualControls = VirtualControls.create(enigmaPlayer, createVirtualControlsSettings());
@@ -684,7 +738,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private void showAdsMarkerOnTimeline(IEnigmaPlayer enigmaPlayer) {
         AdIncludedTimeline adIncludedTimeline = (AdIncludedTimeline) enigmaPlayer.getTimeline();
         List<ITimelinePosition> adBreaksPositions = adIncludedTimeline.getAdBreaksPositions();
-        if(adBreaksPositions != null) {
+        if (adBreaksPositions != null) {
             long[] adGroupTimesMs = new long[adBreaksPositions.size()];
             for (int i = 0; i < adBreaksPositions.size(); i++) {
                 ITimelinePosition adTime = adBreaksPositions.get(i);
@@ -697,6 +751,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
     /**
      * Override this to change or implement your own VirtualControlsSettings.
+     *
      * @return
      */
     protected IVirtualControlsSettings createVirtualControlsSettings() {
@@ -708,14 +763,14 @@ public class ExoPlayerTech implements IPlayerImplementation {
             PlayerView.switchTargetView(player, playerView, (PlayerView) view);
             playerView = (PlayerView) view;
 
-            if(hideControllerCalled) {
+            if (hideControllerCalled) {
                 hideControllerOnPlayerView(playerView);
                 playerViewControlsReady.destroy();
             } else {
                 View exoDurationView = playerView.findViewById(R.id.exo_duration);
                 View exoPositionView = playerView.findViewById(R.id.exo_position);
                 if (exoDurationView != null || exoPositionView != null) {
-                    if(exoDurationView == null || exoPositionView == null) {
+                    if (exoDurationView == null || exoPositionView == null) {
                         throw new IllegalStateException("Only one of R.id.exo_integration_duration and R.id.exo_integration_position found");
                     }
                     durationView = replaceExoPlayerTextView(exoDurationView);
@@ -747,7 +802,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
 
     public void hideController() {
         hideControllerCalled = true;
-        if(playerView != null) {
+        if (playerView != null) {
             hideControllerOnPlayerView(playerView);
         }
     }
@@ -761,7 +816,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
         playerView.setControllerVisibilityListener(new PlayerControlView.VisibilityListener() {
             @Override
             public void onVisibilityChange(int visibility) {
-                if(visibility == View.VISIBLE) {
+                if (visibility == View.VISIBLE) {
                     playerView.hideController();
                 }
             }
@@ -769,22 +824,22 @@ public class ExoPlayerTech implements IPlayerImplementation {
     }
 
     private MediaSource buildMediaSource(IPlayerImplementationControls.ILoadRequest loadRequest) throws ControlRequestResolutionException {
-        if(loadRequest instanceof IPlayerImplementationControls.IStreamLoadRequest) {
+        if (loadRequest instanceof IPlayerImplementationControls.IStreamLoadRequest) {
             IPlayerImplementationControls.IStreamLoadRequest typedLR = (IPlayerImplementationControls.IStreamLoadRequest) loadRequest;
-            return buildMediaSource(Uri.parse(typedLR.getUrl()),loadRequest);
-        } else if(loadRequest instanceof IPlayerImplementationControls.IDownloadedLoadRequest) {
-            IPlayerImplementationControls.IDownloadedLoadRequest typedLR = (IPlayerImplementationControls.IDownloadedLoadRequest)loadRequest;
+            return buildMediaSource(Uri.parse(typedLR.getUrl()), loadRequest);
+        } else if (loadRequest instanceof IPlayerImplementationControls.IDownloadedLoadRequest) {
+            IPlayerImplementationControls.IDownloadedLoadRequest typedLR = (IPlayerImplementationControls.IDownloadedLoadRequest) loadRequest;
             Object downloadData = typedLR.getDownloadData();
-            if(!(downloadData instanceof IMediaSourceFactory)) {
+            if (!(downloadData instanceof IMediaSourceFactory)) {
                 throw ControlRequestResolutionException.onRejected(new ExoRejectReason(
                         IControlResultHandler.RejectReasonType.ILLEGAL_ARGUMENT,
                         "Unrecognized downloadData"));
             }
-            IMediaSourceFactory mediaSourceFactory = (IMediaSourceFactory)downloadData;
+            IMediaSourceFactory mediaSourceFactory = (IMediaSourceFactory) downloadData;
 
-            if(downloadData instanceof IOfflineDrmKeySource) {
-                byte[] drmKeys = ((IOfflineDrmKeySource)downloadData).getDrmKeys();
-                if(drmKeys != null) {
+            if (downloadData instanceof IOfflineDrmKeySource) {
+                byte[] drmKeys = ((IOfflineDrmKeySource) downloadData).getDrmKeys();
+                if (drmKeys != null) {
                     drmSessionManager.useOfflineManager(drmKeys);
                 }
             }
@@ -823,13 +878,13 @@ public class ExoPlayerTech implements IPlayerImplementation {
             case C.TYPE_OTHER:
                 DefaultExtractorsFactory extractorsFactory =
                         new DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true);
-                internalMediaSourceFactory = new ProgressiveMediaSource.Factory(mediaDataSourceFactory,extractorsFactory);
+                internalMediaSourceFactory = new ProgressiveMediaSource.Factory(mediaDataSourceFactory, extractorsFactory);
                 break;
             default:
                 throw new InvalidParameterException("Unsupported type: " + type);
         }
 
-        if(type != C.TYPE_OTHER) {
+        if (type != C.TYPE_OTHER) {
             internalMediaSourceFactory.setDrmSessionManagerProvider(mediaItem -> drmSessionManager);
         }
         mediaSourceFactory.setInternalFactory(internalMediaSourceFactory);
