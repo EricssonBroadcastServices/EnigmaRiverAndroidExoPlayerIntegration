@@ -1,9 +1,12 @@
 package com.redbeemedia.enigma.exoplayerintegration;
 
 import android.media.MediaCodec;
+
 import androidx.annotation.Nullable;
+
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
+import com.google.android.exoplayer2.ExoTimeoutException;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
@@ -27,6 +30,7 @@ import com.redbeemedia.enigma.exoplayerintegration.tracks.ExoVideoTrack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @NonNullApi
 /*package-protected*/ class ExoPlayerListener implements Player.Listener {
@@ -44,13 +48,17 @@ import java.util.List;
     public void onPlayerError(PlaybackException error) {
         if(isKeysExpiredException(error)) {
             listener.onError(new DrmKeysExpiredError(error));
+        } else if (isExoTimeoutException(error)) {
+            // playback stopped and will be reported as Aborted in analytics
+            // because this exception comes when timeout happen in screen release
+            listener.onPlaybackStopped();
         } else {
             listener.onError(new ExoPlayerError(error));
         }
     }
 
     private boolean isKeysExpiredException(PlaybackException error) {
-        if(error instanceof  ExoPlaybackException) {
+        if (error instanceof  ExoPlaybackException) {
             ExoPlaybackException exoplaybackExcepton  = (ExoPlaybackException) error;
             if (exoplaybackExcepton.type == ExoPlaybackException.TYPE_RENDERER) {
                 //Check if KeysExpiredException
@@ -68,6 +76,23 @@ import java.util.List;
                         return true;
                     }
                     exception = exception.getCause();
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isExoTimeoutException(PlaybackException error) {
+        if (error instanceof ExoPlaybackException) {
+            ExoPlaybackException exoplaybackExcepton = (ExoPlaybackException) error;
+            Throwable cause = Objects.requireNonNull(exoplaybackExcepton.getCause());
+            // This exception occur when releasing or screen-surface release timeout
+            // https://developer.android.com/reference/androidx/media3/exoplayer/ExoTimeoutException
+            if (cause instanceof ExoTimeoutException) {
+                ExoTimeoutException exoTimeoutException = (ExoTimeoutException) cause;
+                if (exoTimeoutException.timeoutOperation == ExoTimeoutException.TIMEOUT_OPERATION_RELEASE
+                        || exoTimeoutException.timeoutOperation == ExoTimeoutException.TIMEOUT_OPERATION_DETACH_SURFACE) {
+                    return true;
                 }
             }
         }
