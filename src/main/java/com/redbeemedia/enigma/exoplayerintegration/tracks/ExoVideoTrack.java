@@ -50,7 +50,7 @@ public class ExoVideoTrack extends AbstractExoTrack implements IVideoTrack {
 
     @Override
     public void applyTo(DefaultTrackSelector trackSelector) {
-        DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
+        DefaultTrackSelector.Parameters.Builder parametersBuilder = trackSelector.buildUponParameters();
         parametersBuilder.setMinVideoBitrate(bitrateInBytesPerSecond);
         parametersBuilder.setMaxVideoBitrate(bitrateInBytesPerSecond);
         parametersBuilder.setForceLowestBitrate(true);

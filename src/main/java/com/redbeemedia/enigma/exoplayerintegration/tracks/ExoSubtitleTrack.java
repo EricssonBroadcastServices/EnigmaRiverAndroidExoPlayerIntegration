@@ -23,7 +23,7 @@ public final class ExoSubtitleTrack extends AbstractExoTrack implements ISubtitl
 
     @Override
     public void applyTo(DefaultTrackSelector trackSelector) {
-        DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
+        DefaultTrackSelector.Parameters.Builder parametersBuilder = trackSelector.buildUponParameters();
         parametersBuilder.setPreferredTextLanguage(getCode());
         parametersBuilder.setPreferredTextRoleFlags(getRoleFlag());
         parametersBuilder.setRendererDisabled(ExoUtil.DEFAULT_TEXT_RENDERER_INDEX, false);
@@ -31,7 +31,7 @@ public final class ExoSubtitleTrack extends AbstractExoTrack implements ISubtitl
     }
 
     public static void applyNone(DefaultTrackSelector trackSelector) {
-        DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
+        DefaultTrackSelector.Parameters.Builder parametersBuilder = trackSelector.buildUponParameters();
         parametersBuilder.setRendererDisabled(ExoUtil.DEFAULT_TEXT_RENDERER_INDEX, true);
         trackSelector.setParameters(parametersBuilder.build());
     }

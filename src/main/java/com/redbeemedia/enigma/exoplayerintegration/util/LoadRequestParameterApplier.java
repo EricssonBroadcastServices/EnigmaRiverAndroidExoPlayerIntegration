@@ -15,7 +15,7 @@ public abstract class LoadRequestParameterApplier {
 
     public void applyTo(DefaultTrackSelector trackSelector) {
         try {
-            DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
+            DefaultTrackSelector.Parameters.Builder parametersBuilder = trackSelector.buildUponParameters();
             applyMaxBitrate(parametersBuilder);
             applyMaxResolutionHeight(parametersBuilder);
             trackSelector.setParameters(parametersBuilder.build());
@@ -24,7 +24,7 @@ public abstract class LoadRequestParameterApplier {
         }
     }
 
-    private void applyMaxBitrate(DefaultTrackSelector.ParametersBuilder parametersBuilder) {
+    private void applyMaxBitrate(DefaultTrackSelector.Parameters.Builder parametersBuilder) {
         try {
             Integer maxBitrate = loadRequest.getMaxBitrate();
             parametersBuilder.setMaxVideoBitrate(maxBitrate != null ? maxBitrate : Integer.MAX_VALUE);
@@ -33,7 +33,7 @@ public abstract class LoadRequestParameterApplier {
         }
     }
 
-    private void applyMaxResolutionHeight(DefaultTrackSelector.ParametersBuilder parametersBuilder) {
+    private void applyMaxResolutionHeight(DefaultTrackSelector.Parameters.Builder parametersBuilder) {
         try {
             Integer maxResoultionHeight = loadRequest.getMaxResoultionHeight();
             parametersBuilder.setMaxVideoSize(Integer.MAX_VALUE, maxResoultionHeight != null ? maxResoultionHeight : Integer.MAX_VALUE);

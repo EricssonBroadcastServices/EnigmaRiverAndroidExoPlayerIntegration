@@ -302,7 +302,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
         @Override
         public void stop(IPlayerImplementationControlResultHandler resultHandler) {
             AndroidThreadUtil.runOnUiThread(() -> {
-                player.stop(true);
+                player.stop();
                 resultHandler.onDone();
             });
         }
@@ -340,7 +340,12 @@ public class ExoPlayerTech implements IPlayerImplementation {
                     player.seekTo(millis);
                     player.addListener(new Player.Listener() {
                         @Override
-                        public void onSeekProcessed() {
+                        public void onSeekBackIncrementChanged(long seekBackIncrementMs) {
+                            player.removeListener(this);
+                            resultHandler.onDone();
+                        }
+                        @Override
+                        public void onSeekForwardIncrementChanged(long seekForwardIncrementMs) {
                             player.removeListener(this);
                             resultHandler.onDone();
                         }
@@ -458,7 +463,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
             }
             AndroidThreadUtil.runOnUiThread(() -> {
                 try {
-                    DefaultTrackSelector.ParametersBuilder parametersBuilder = trackSelector.buildUponParameters();
+                    DefaultTrackSelector.Parameters.Builder parametersBuilder = trackSelector.buildUponParameters();
                     parametersBuilder.setMaxVideoSize(width, height);
                     parametersBuilder.setForceHighestSupportedBitrate(false);
                     parametersBuilder.setForceLowestBitrate(false);

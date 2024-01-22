@@ -10,6 +10,7 @@ import com.google.android.exoplayer2.ExoTimeoutException;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.Tracks;
 import com.google.android.exoplayer2.drm.KeysExpiredException;
 import com.google.android.exoplayer2.source.TrackGroup;
 import com.google.android.exoplayer2.source.TrackGroupArray;
@@ -127,7 +128,6 @@ import java.util.Objects;
     }
 
     @SuppressWarnings("deprecation")
-    @Override
     public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
         List<IPlayerImplementationTrack> tracks = new ArrayList<>();
         for(int i = 0; i < trackGroups.length; ++i) {
@@ -183,14 +183,14 @@ import java.util.Objects;
     }
 
     // TODO: replace deprecated onTracksChanged by onTracksInfoChanged, once we figure out how to retrieve the current ABR selected track...
-    /*
+
     @Override
-    public void onTracksInfoChanged(@NotNull TracksInfo tracksInfo)
+    public void onTracksChanged(Tracks tracksInfo)
     {
         List<IPlayerImplementationTrack> tracks = new ArrayList<>();
-        for (TracksInfo.TrackGroupInfo trackGroupInfo : tracksInfo.getTrackGroupInfos())
+        for (Tracks.Group trackGroupInfo : tracksInfo.getGroups())
         {
-            TrackGroup trackGroup = trackGroupInfo.getTrackGroup();
+            TrackGroup trackGroup = trackGroupInfo.getMediaTrackGroup();
             for (int ii = 0; ii < trackGroup.length; ii++)
             {
                 final Format format = trackGroup.getFormat(ii);
@@ -205,7 +205,10 @@ import java.util.Objects;
                     }
                 }
                 if(isAudioType(format.containerMimeType)) {
-                    ExoAudioTrack audioTrack = new ExoAudioTrack(label, format.language, format.id, format.roleFlags);
+                    if (!exoPlayerTech.isAudioTrackSupported(format)) {
+                        continue;
+                    }
+                    ExoAudioTrack audioTrack = new ExoAudioTrack(trackGroup,label, format.language, format.id, format.roleFlags);
                     if(!tracks.contains(audioTrack)) {
                         tracks.add(audioTrack);
                     }
@@ -218,9 +221,8 @@ import java.util.Objects;
                 }
             }
         }
-
-        //listener.onTracksChanged(tracks);
-    }*/
+        listener.onTracksChanged(tracks);
+    }
 
     private static boolean isTextMimeType(@Nullable String mimeType) {
         return MimeTypes.getTrackType(mimeType) == C.TRACK_TYPE_TEXT;

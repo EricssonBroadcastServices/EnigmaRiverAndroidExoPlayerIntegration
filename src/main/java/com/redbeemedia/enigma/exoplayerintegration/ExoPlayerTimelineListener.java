@@ -53,7 +53,12 @@ public class ExoPlayerTimelineListener implements Player.Listener {
     }
 
     @Override
-    public void onSeekProcessed() {
+    public void onSeekBackIncrementChanged(long seekBackIncrementMs) {
+        listener.onPositionChanged();
+    }
+
+    @Override
+    public void onSeekForwardIncrementChanged(long seekBackIncrementMs) {
         listener.onPositionChanged();
     }
 }
