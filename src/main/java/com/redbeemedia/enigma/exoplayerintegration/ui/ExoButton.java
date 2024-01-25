@@ -6,11 +6,13 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.widget.ImageButton;
 
+import androidx.appcompat.widget.AppCompatImageButton;
+
 import com.redbeemedia.enigma.core.util.AndroidThreadUtil;
 import com.redbeemedia.enigma.core.virtualui.BaseVirtualButtonListener;
 import com.redbeemedia.enigma.core.virtualui.IVirtualButton;
 
-public class ExoButton extends ImageButton {
+public class ExoButton extends AppCompatImageButton {
     private boolean hideIfDisabled = false;
 
     public ExoButton(Context context) {
