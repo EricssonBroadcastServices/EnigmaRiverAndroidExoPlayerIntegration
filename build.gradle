@@ -36,10 +36,10 @@ dependencies {
     if(findProject(':core') != null) {
         implementation project(":core")
     } else {
-        implementation "com.github.EricssonBroadcastServices.EnigmaRiverAndroid:core:r3.7.5-BETA-10"
+        implementation "com.github.EricssonBroadcastServices.EnigmaRiverAndroid:core:r3.7.5-BETA-11"
     }
 
-    api 'com.github.EricssonBroadcastServices:ExoPlayer:2.19.1'
+    api 'com.github.EricssonBroadcastServices.ExoPlayer:exoplayer:2.19.1'
     api 'com.github.EricssonBroadcastServices.ExoPlayer:extension-mediasession:2.19.1'
 
     implementation 'androidx.annotation:annotation:1.0.2'
