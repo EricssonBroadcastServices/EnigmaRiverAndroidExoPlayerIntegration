@@ -31,7 +31,7 @@ public final class ExoAudioTrack extends AbstractExoTrack implements IAudioTrack
         DefaultTrackSelector.Parameters.Builder parametersBuilder = trackSelector.buildUponParameters();
         // Selection should rather be done on language + role
         // using overrides as a workaround because some customers did not set the roles properly...
-        parametersBuilder.addOverride(new TrackSelectionOverride(trackGroup,0));
+        parametersBuilder.setOverrideForType(new TrackSelectionOverride(trackGroup,0));
         /*
         parametersBuilder.setPreferredAudioLanguage(getCode());
         parametersBuilder.setPreferredAudioRoleFlags(getRoleFlag());
