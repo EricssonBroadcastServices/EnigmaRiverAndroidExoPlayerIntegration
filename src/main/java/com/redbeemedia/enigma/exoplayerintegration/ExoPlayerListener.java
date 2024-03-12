@@ -139,7 +139,7 @@ import java.util.Objects;
                     label = format.language;
                 }
                 if(isTextMimeType(format.containerMimeType) || isTextMimeType(format.sampleMimeType)) {
-                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language, format.id, format.roleFlags);
+                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language, format.id, format.roleFlags, format.selectionFlags);
                     if(!tracks.contains(subtitleTrack)) {
                         tracks.add(subtitleTrack);
                     }
@@ -199,7 +199,7 @@ import java.util.Objects;
                     label = format.language;
                 }
                 if(isTextMimeType(format.containerMimeType) || isTextMimeType(format.sampleMimeType)) {
-                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language, format.id, format.roleFlags);
+                    ExoSubtitleTrack subtitleTrack = new ExoSubtitleTrack(label, format.language, format.id, format.roleFlags, format.selectionFlags);
                     if(!tracks.contains(subtitleTrack)) {
                         tracks.add(subtitleTrack);
                     }

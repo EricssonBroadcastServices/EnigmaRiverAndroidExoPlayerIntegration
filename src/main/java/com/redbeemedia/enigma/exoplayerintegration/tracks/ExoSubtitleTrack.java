@@ -11,14 +11,19 @@ public final class ExoSubtitleTrack extends AbstractExoTrack implements ISubtitl
         super(label,code);
     }
 
-    public ExoSubtitleTrack(String label,String code,String id, int role) {
-        super(label,code, id, role);
+    public ExoSubtitleTrack(String label,String code,String id, int role, int selection) {
+        super(label,code, id, role, selection);
     }
 
 
     @Override
     public String getLabel() {
         return super.getLabel();
+    }
+
+    @Override
+    public boolean isForcedSubtitle() {
+        return super.isForcedTrack();
     }
 
     @Override

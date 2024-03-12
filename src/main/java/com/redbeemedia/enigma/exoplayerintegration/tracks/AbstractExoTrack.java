@@ -13,12 +13,14 @@ import java.util.Objects;
     private final String code;
     protected final String trackId;
     private final @C.RoleFlags int roleFlag;
+    private final @C.SelectionFlags int selectionFlag;
 
     public AbstractExoTrack(String label, String code) {
         this.label = label;
         this.code = code;
         this.trackId = null;
         this.roleFlag = C.ROLE_FLAG_MAIN;
+        this.selectionFlag = C.SELECTION_FLAG_DEFAULT;
     }
 
     public AbstractExoTrack(String label, String code, String id, @C.RoleFlags int role) {
@@ -26,6 +28,15 @@ import java.util.Objects;
         this.code = code;
         this.trackId = id;
         this.roleFlag = role;
+        this.selectionFlag = C.SELECTION_FLAG_DEFAULT;
+    }
+
+    public AbstractExoTrack(String label, String code, String id, @C.RoleFlags int role, @C.SelectionFlags int selectionFlag) {
+        this.label = label;
+        this.code = code;
+        this.trackId = id;
+        this.roleFlag = role;
+        this.selectionFlag = selectionFlag;
     }
 
     public AbstractExoTrack(String id){
@@ -33,6 +44,7 @@ import java.util.Objects;
         this.label = null;
         this.trackId = id;
         this.roleFlag = C.ROLE_FLAG_MAIN;
+        this.selectionFlag = C.SELECTION_FLAG_DEFAULT;
     }
 
     protected String getLabel() {
@@ -46,6 +58,10 @@ import java.util.Objects;
     public @C.RoleFlags int getRoleFlag()
     {
         return roleFlag;
+    }
+
+    public boolean isForcedTrack() {
+        return selectionFlag == C.SELECTION_FLAG_FORCED;
     }
 
     public abstract void applyTo(DefaultTrackSelector trackSelector);

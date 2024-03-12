@@ -51,6 +51,7 @@ import com.google.android.exoplayer2.upstream.DefaultLoadErrorHandlingPolicy;
 import com.google.android.exoplayer2.util.Util;
 import com.redbeemedia.enigma.core.ads.AdIncludedTimeline;
 import com.redbeemedia.enigma.core.audio.IAudioTrack;
+import com.redbeemedia.enigma.core.context.EnigmaRiverContext;
 import com.redbeemedia.enigma.core.error.IllegalSeekPositionError;
 import com.redbeemedia.enigma.core.error.UnexpectedError;
 import com.redbeemedia.enigma.core.format.EnigmaMediaFormat;
@@ -137,7 +138,13 @@ public class ExoPlayerTech implements IPlayerImplementation {
     private void setupExoplayerTech(Context context, String appName, boolean useDrmSecurityLevelL3) {
         ExoPlayerIntegrationContext.assertInitialized(); //Assert module initialized
 
-        this.mediaDataSourceFactory = new DefaultDataSourceFactory(context, Util.getUserAgent(context, appName));
+        this.mediaDataSourceFactory = new DefaultDataSourceFactory(context,
+                EnigmaRiverContext.getAppName()
+                        + "/"
+                        + EnigmaRiverContext.getAppVersion()
+                        + " "
+                        + System.getProperty("http.agent")
+        );
 
         this.mediaDrmCallback = new MediaDrmFromProviderCallback(context, appName);
 
