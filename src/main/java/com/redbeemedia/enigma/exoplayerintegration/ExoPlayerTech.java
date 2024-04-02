@@ -175,6 +175,8 @@ public class ExoPlayerTech implements IPlayerImplementation {
                     .setTrackSelector(trackSelector)
                     .setMediaSourceFactory(mediaSourceFactory)
                     .setRenderersFactory(new EnigmaRendererFactory(context))
+                    .setReleaseTimeoutMs(1000L)
+                    .setDetachSurfaceTimeoutMs(4000L)
                     .build();//ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager);
 
             this.driftMeter = new DriftMeter(player, handler);
