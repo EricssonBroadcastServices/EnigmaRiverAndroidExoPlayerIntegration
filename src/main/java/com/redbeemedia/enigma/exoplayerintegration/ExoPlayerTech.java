@@ -87,6 +87,7 @@ import com.redbeemedia.enigma.exoplayerintegration.ui.ExoButton;
 import com.redbeemedia.enigma.exoplayerintegration.ui.TimeBarUtil;
 import com.redbeemedia.enigma.exoplayerintegration.util.LoadRequestParameterApplier;
 import com.redbeemedia.enigma.exoplayerintegration.util.MediaSourceFactoryConfigurator;
+import com.redbeemedia.enigma.exoplayerintegration.util.MetadataMappers;
 
 import java.io.FileNotFoundException;
 import java.security.InvalidParameterException;
@@ -231,12 +232,10 @@ public class ExoPlayerTech implements IPlayerImplementation {
         return true;
     }
 
-    @Override
     public void setupPlayerNotificationManager(PlayerNotificationManager manager) {
         manager.setPlayer(player);
     }
 
-    @Override
     public MediaSessionCompat createMediaSession(Context applicationContext) {
         MediaSessionCompat mediaSession = new MediaSessionCompat(applicationContext, applicationContext.getPackageName());
         MediaSessionConnector mediaSessionConnector = new MediaSessionConnector(mediaSession);
@@ -611,12 +610,10 @@ public class ExoPlayerTech implements IPlayerImplementation {
         });
     }
 
-    @Override
     public Player getInternalPlayer() {
         return player;
     }
 
-    @Override
     public SubtitleView getPlayerSubtitleView() {
         return playerView.getSubtitleView();
     }
@@ -671,7 +668,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                                             }
                                         }
                                         if (isValidEvent) {
-                                            timeline.onHlsMetadata(mediaPlaylist);
+                                            timeline.onHlsMetadata(MetadataMappers.mapHlsMetadata(mediaPlaylist));
                                         }
                                     }
                                 }
@@ -681,7 +678,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
                             @Override
                             public void onMetadata(Metadata metadata) {
                                 // event for DASH event stream
-                                timeline.onDashMetadata(metadata);
+                                timeline.onDashMetadata(MetadataMappers.mapMetadata(metadata));
                             }
                         });
 
