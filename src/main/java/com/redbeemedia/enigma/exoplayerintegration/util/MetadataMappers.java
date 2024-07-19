@@ -2,7 +2,9 @@ package com.redbeemedia.enigma.exoplayerintegration.util;
 
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.metadata.Metadata;
+import com.google.android.exoplayer2.metadata.emsg.EventMessage;
 import com.google.android.exoplayer2.source.hls.playlist.HlsMediaPlaylist;
+import com.redbeemedia.enigma.core.player.timeline.EnigmaEventMessage;
 import com.redbeemedia.enigma.core.player.timeline.EnigmaMetadata;
 import com.redbeemedia.enigma.core.player.timeline.EnigmaHlsMediaPlaylist;
 
@@ -48,7 +50,22 @@ public class MetadataMappers {
                     format.language,
                     format.accessibilityChannel);
         }
-        return new EnigmaMetadata.Entry(enigmaFormat, entry.getWrappedMetadataBytes());
+        if (entry instanceof EventMessage) {
+            return new EnigmaEventMessage(
+                    enigmaFormat,
+                    entry.getWrappedMetadataBytes(),
+                    ((EventMessage) entry).schemeIdUri,
+                    ((EventMessage) entry).value,
+                    ((EventMessage) entry).durationMs,
+                    ((EventMessage) entry).id,
+                    ((EventMessage) entry).messageData
+            );
+        } else {
+            return new EnigmaMetadata.Entry(
+                    enigmaFormat,
+                    entry.getWrappedMetadataBytes()
+            );
+        }
     }
 
     public static EnigmaHlsMediaPlaylist mapHlsMetadata(HlsMediaPlaylist metadata) {
