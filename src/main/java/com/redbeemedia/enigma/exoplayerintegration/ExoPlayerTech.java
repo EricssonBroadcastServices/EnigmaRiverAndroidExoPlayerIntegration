@@ -302,6 +302,7 @@ public class ExoPlayerTech implements IPlayerImplementation {
         @Override
         public void pause(IPlayerImplementationControlResultHandler resultHandler) {
             AndroidThreadUtil.runOnUiThread(() -> {
+                player.pause();
                 player.setPlayWhenReady(false);
                 resultHandler.onDone();
             });
