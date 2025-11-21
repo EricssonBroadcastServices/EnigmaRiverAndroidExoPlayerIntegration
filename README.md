@@ -1,3 +1,3 @@
 # Exo Player Integration
 
-The exo player integration library, version r3.7.23.
+The exo player integration library, version r3.7.24-BETA-1.

@@ -7,8 +7,6 @@ android {
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 34
-        versionCode 1
-        versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -25,6 +23,7 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+    namespace 'com.redbeemedia.enigma.exoplayerintegration'
 }
 
 repositories {
@@ -36,7 +35,7 @@ dependencies {
     if(findProject(':core') != null) {
         implementation project(":core")
     } else {
-        implementation "com.github.EricssonBroadcastServices.EnigmaRiverAndroid:core:r3.7.23"
+        implementation "com.github.EricssonBroadcastServices.EnigmaRiverAndroid:core:r3.7.24-BETA-1"
     }
 
     api 'com.github.EricssonBroadcastServices.ExoPlayer:exoplayer:2.19.2'
